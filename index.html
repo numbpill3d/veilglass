@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>veilglass</title>
+<style>
+:root {
+  --void: #060405; --pitch: #0d090a; --seam: #2a1518; --ash: #5b4c4d;
+  --blood: #b3121f; --ember: #ff4a36; --bone: #e9dcc8; --dim: #8d7b78;
+  --display: "Cinzel", "Cormorant Garamond", "IM Fell English", "Palatino Linotype", Georgia, serif;
+  --mono: "JetBrains Mono", "Fira Code", "Hack", monospace;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; background: var(--void); color: var(--bone); overflow: hidden;
+  font-family: var(--mono); font-size: 13px; user-select: none; }
+#frame { display: grid; height: 100%; grid-template: 44px 1fr 108px / 1fr 320px; }
+header { grid-column: 1 / 3; display: flex; align-items: center; gap: 18px; padding: 0 14px;
+  border-bottom: 1px solid var(--seam); background: linear-gradient(#120a0b, var(--void)); }
+header h1 { margin: 0; font: 600 17px var(--display); letter-spacing: .42em; color: var(--ember);
+  text-shadow: 0 0 12px #b3121f99; }
+header h1 span { color: var(--bone); }
+#state { flex: 1; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#state b { color: var(--bone); font-weight: 400; }
+#state .bad { color: var(--ember); }
+button { font: 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--dim);
+  background: none; border: 1px solid var(--seam); padding: 7px 11px; cursor: pointer; }
+button.on { color: var(--void); background: var(--blood); border-color: var(--ember); }
+#clock { color: var(--bone); letter-spacing: .1em; }
+#glass { position: relative; min-width: 0; min-height: 0; }
+#glass canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+aside { border-left: 1px solid var(--seam); background: var(--pitch); display: flex; flex-direction: column; min-height: 0; }
+aside h2, footer h2 { margin: 0; padding: 9px 12px 6px; font: 600 11px var(--display); letter-spacing: .34em;
+  color: var(--blood); text-transform: uppercase; }
+#census { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; padding: 0 12px 10px;
+  border-bottom: 1px solid var(--seam); }
+#census div { display: flex; justify-content: space-between; color: var(--dim); }
+#census div b { color: var(--bone); font-weight: 400; }
+#census div.zero { opacity: .35; }
+#omens { flex: 1; overflow-y: auto; padding: 0 12px 12px; scrollbar-width: thin; scrollbar-color: var(--seam) transparent; }
+.omen { padding: 7px 0 7px 10px; border-left: 2px solid var(--seam); margin-bottom: 4px; color: var(--dim); line-height: 1.35; cursor: pointer; }
+.omen time { display: block; font-size: 10px; color: var(--ash); letter-spacing: .1em; }
+.omen.lv1 { border-color: var(--blood); color: var(--bone); }
+.omen.lv2 { border-color: var(--ember); color: var(--ember); background: linear-gradient(90deg, #b3121f26, transparent); }
+.hush { color: var(--ash); font-style: italic; padding: 6px 0; }
+footer { grid-column: 1 / 3; border-top: 1px solid var(--seam); position: relative; }
+footer h2 { position: absolute; left: 0; top: 0; z-index: 1; }
+footer canvas { width: 100%; height: 100%; display: block; }
+#tip { position: fixed; pointer-events: none; display: none; padding: 5px 8px; background: #000d;
+  border: 1px solid var(--blood); color: var(--bone); font-size: 11px; z-index: 5; white-space: nowrap; }
+#card { position: fixed; display: none; z-index: 6; width: 300px; background: #0b0607f2;
+  border: 1px solid var(--blood); box-shadow: 0 0 34px #b3121f55, inset 0 0 0 3px var(--void), inset 0 0 0 4px var(--seam); padding: 16px; }
+#card h3 { margin: 0; font: 600 20px var(--display); letter-spacing: .16em; color: var(--ember); }
+#card .kind { color: var(--bone); letter-spacing: .2em; text-transform: uppercase; font-size: 11px; }
+#card .gloss { color: var(--dim); font-style: italic; margin: 6px 0 10px; }
+#card dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0 0 10px; }
+#card dt { color: var(--ash); } #card dd { margin: 0; color: var(--bone); word-break: break-all; }
+#card .true { border-top: 1px dashed var(--seam); padding-top: 9px; }
+#card .note { color: var(--ash); font-size: 10px; line-height: 1.4; margin: 0 0 10px; }
+#card .row { display: flex; gap: 8px; }
+@media (max-aspect-ratio: 1/1) {
+  #frame { grid-template: 44px 1fr 220px 90px / 1fr; }
+  header, footer { grid-column: 1; }
+  aside { border-left: 0; border-top: 1px solid var(--seam); }
+}
+</style>
+</head>
+<body>
+<div id="frame">
+  <header>
+    <h1>VEIL<span>GLASS</span></h1>
+    <div id="state">opening the glass…</div>
+    <button id="unveil" title="Show what each presence really is">lift veil</button>
+    <button id="voice" title="Toll a bell when something comes close">voice</button>
+    <div id="clock"></div>
+  </header>
+  <div id="glass"><canvas id="radar"></canvas></div>
+  <aside>
+    <h2>Census</h2>
+    <div id="census"></div>
+    <h2>Omens</h2>
+    <div id="omens"><div class="hush">the glass is still</div></div>
+  </aside>
+  <footer><h2>The Tide · wifi channel pressure</h2><canvas id="tide"></canvas></footer>
+</div>
+<div id="tip"></div>
+<div id="card"></div>
+<script>
+const KIND = {
+  walker:   { n: 5, label: 'Walker',      gloss: 'a carried mind: phone or tablet' },
+  listener: { n: 6, label: 'Listener',    gloss: 'ears sealed in sound: earbuds or headphones' },
+  tether:   { n: 4, label: 'Tether',      gloss: 'a thing made to be found: tracker tag, or a sleeping Apple device' },
+  pulse:    { n: 7, label: 'Pulse',       gloss: 'worn against skin: watch or band' },
+  engine:   { n: 4, label: 'Engine',      gloss: 'a seated machine: computer or screen' },
+  lantern:  { n: 3, label: 'Lantern',     gloss: 'fixed and calling: beacon' },
+  relic:    { n: 8, label: 'Relic',       gloss: 'a small servant: peripheral or gadget' },
+  pillar:   { n: 2, label: 'Pillar',      gloss: 'rooted and radiating: wifi access point' },
+  flame:    { n: 3, label: 'Flamebearer', gloss: 'a pillar that walks: phone hotspot' },
+  drifter:  { n: 5, label: 'Drifter',     gloss: 'bound to a pillar: a device speaking over wifi' },
+  seeker:   { n: 7, label: 'Seeker',      gloss: 'calling for a home it cannot find: unjoined wifi device' },
+  shade:    { n: 0, label: 'Shade',       gloss: 'gives nothing away' },
+};
+const ZONE = [['touch', 6], ['near', 20], ['far', 60]];
+const ZCOL = ['#ff4a36', '#e02232', '#b82835', '#84696b'];
+const MAXFT = 220, TAU = Math.PI * 2;
+const $ = id => document.getElementById(id);
+const radar = $('radar'), rc = radar.getContext('2d'), tide = $('tide'), tc = tide.getContext('2d');
+const live = new Map();
+let snap = { ents: [], waves: {}, omens: [], hum: 0, status: {}, attuning: true };
+let unveiled = false, voice = false, lastOmen = 0, picked = null, W = 0, H = 0, cx = 0, cy = 0, R = 0, audio;
+
+function fit() {
+  const d = Math.min(devicePixelRatio || 1, 2);
+  for (const c of [radar, tide]) {
+    const b = c.getBoundingClientRect();
+    c.width = b.width * d; c.height = b.height * d;
+    c.getContext('2d').setTransform(d, 0, 0, d, 0, 0);
+  }
+  const b = radar.getBoundingClientRect();
+  W = b.width; H = b.height; cx = W / 2; cy = H / 2; R = Math.min(W, H) / 2 - 26;
+}
+addEventListener('resize', fit); fit();
+
+const radius = ft => R * Math.log(1 + Math.min(ft, MAXFT)) / Math.log(1 + MAXFT);
+const span = s => s < 90 ? s + ' s' : s < 5400 ? Math.round(s / 60) + ' min' : (s / 3600).toFixed(1) + ' h';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function merge(s) {
+  snap = s;
+  const seen = new Set();
+  for (const e of s.ents) {
+    seen.add(e.id);
+    let o = live.get(e.id);
+    if (!o) {
+      // Bearing is symbolic: one antenna can tell how loud, not which way.
+      o = { sf: Math.min(e.feet * 1.6, MAXFT), a: (e.seed % 3600) / 3600 * TAU,
+            drift: ((e.seed >> 5) % 100 - 50) / 90000, alpha: 0 };
+      live.set(e.id, o);
+    }
+    Object.assign(o, e, { gone: false });
+  }
+  for (const [id, o] of live) if (!seen.has(id)) o.gone = true;
+  census(); omens(); state();
+  if (picked && live.has(picked) && $('card').style.display === 'block') card(live.get(picked));
+}
+
+function state() {
+  const n = snap.ents.filter(e => e.m !== 'wifi').length, w = snap.ents.length - n;
+  const bad = Object.entries(snap.status).filter(([, v]) => v !== 'listening')
+    .map(([k, v]) => `<span class="bad">${k} ${esc(v)}</span>`).join(' · ');
+  $('state').innerHTML = (snap.attuning ? 'attuning · ' : '') +
+    `<b>${n}</b> presences · <b>${w}</b> pillars · hum <b>${snap.hum}</b>/s` + (bad ? ' · ' + bad : '');
+}
+
+function census() {
+  const count = {};
+  for (const e of snap.ents) count[e.kind] = (count[e.kind] || 0) + 1;
+  $('census').innerHTML = Object.entries(KIND).map(([k, v]) =>
+    `<div class="${count[k] ? '' : 'zero'}" title="${v.gloss}">${v.label}<b>${count[k] || 0}</b></div>`).join('');
+}
+
+function omens() {
+  if (!snap.omens.length) return;
+  $('omens').innerHTML = snap.omens.slice().reverse().map(o =>
+    `<div class="omen lv${o.lv}" data-ent="${o.ent || ''}"><time>${new Date(o.t * 1000).toLocaleTimeString([], { hour12: false })}</time>${esc(o.text)}</div>`).join('');
+  const fresh = snap.omens.filter(o => o.id > lastOmen);
+  if (lastOmen && voice && fresh.some(o => o.lv >= 2)) toll();
+  lastOmen = snap.omens[snap.omens.length - 1].id;
+}
+
+function toll() {
+  audio = audio || new AudioContext();
+  const t = audio.currentTime;
+  for (const [f, g] of [[98, .5], [147, .25], [233, .12]]) {
+    const o = audio.createOscillator(), a = audio.createGain();
+    o.frequency.value = f; o.connect(a); a.connect(audio.destination);
+    a.gain.setValueAtTime(g, t); a.gain.exponentialRampToValueAtTime(.001, t + 3.2);
+    o.start(t); o.stop(t + 3.3);
+  }
+}
+
+function sigil(o, x, y, s, t) {
+  const k = KIND[o.kind] || KIND.shade, col = o.fam ? '#9c8f80' : ZCOL[o.zone];
+  rc.save();
+  rc.translate(x, y);
+  rc.globalAlpha = o.alpha * (o.fam ? .55 : 1);
+  rc.strokeStyle = col; rc.fillStyle = col; rc.lineWidth = o.zone <= 1 ? 1.8 : 1.3;
+  if (o.zone <= 1 && !o.fam) { rc.shadowColor = '#ff2a1a'; rc.shadowBlur = o.zone === 0 ? 22 : 10; }
+  const beat = 1 + .1 * Math.sin(t * (o.zone === 0 ? 5 : 2) + o.seed);
+  rc.beginPath(); rc.arc(0, 0, s * 1.45 * beat, 0, TAU); rc.globalAlpha *= .45; rc.stroke(); rc.globalAlpha /= .45;
+  if (o.kind === 'flame') rc.rotate(Math.PI);  // pillars stand upright, flames point down
+  else if (o.kind !== 'pillar') rc.rotate((o.seed % 360) * Math.PI / 180 + t * ((o.seed & 1) ? .12 : -.12));
+  if (k.n === 0) {                       // shade: a broken ring
+    rc.beginPath(); rc.arc(0, 0, s, .5, TAU - .9); rc.stroke();
+  } else if (k.n === 2) {                // pillar: column with crossbars
+    rc.beginPath(); rc.moveTo(0, -s); rc.lineTo(0, s);
+    for (let i = -1; i <= 1; i++) { const w = s * (.35 + ((o.seed >> (i + 2)) & 1) * .3); rc.moveTo(-w, i * s * .55); rc.lineTo(w, i * s * .55); }
+    rc.stroke();
+  } else {
+    const v = [];
+    for (let i = 0; i < k.n; i++) { const a = i / k.n * TAU - Math.PI / 2; v.push([Math.cos(a) * s, Math.sin(a) * s]); }
+    rc.beginPath(); v.forEach((p, i) => i ? rc.lineTo(p[0], p[1]) : rc.moveTo(p[0], p[1])); rc.closePath(); rc.stroke();
+    if (k.n > 4) {                       // chords chosen by the address hash
+      const skip = 2 + (o.seed >> 12) % (k.n - 3);
+      rc.beginPath();
+      for (let i = 0; i < k.n; i++) if ((o.seed >> i) & 1 || i === 0) { rc.moveTo(v[i][0], v[i][1]); const q = v[(i + skip) % k.n]; rc.lineTo(q[0], q[1]); }
+      rc.stroke();
+    } else if (o.kind === 'tether') {    // linked diamond
+      rc.beginPath(); rc.moveTo(0, -s * 1.7); rc.lineTo(0, -s); rc.moveTo(0, s); rc.lineTo(0, s * 1.7); rc.stroke();
+    } else if (o.kind === 'engine') {
+      rc.strokeRect(-s * .32, -s * .32, s * .64, s * .64);
+    }
+  }
+  rc.beginPath(); rc.arc(0, 0, o.kind === 'tether' ? 2.6 : 1.6, 0, TAU);
+  if (o.kind === 'tether' && !o.fam) rc.fillStyle = '#e9dcc8';
+  rc.fill();
+  rc.restore();
+}
+
+function drawRadar(t, dt) {
+  rc.clearRect(0, 0, W, H);
+  const g = rc.createRadialGradient(cx, cy, 0, cx, cy, R * 1.25);
+  g.addColorStop(0, '#1a0709'); g.addColorStop(.55, '#0a0506'); g.addColorStop(1, '#060405');
+  rc.fillStyle = g; rc.fillRect(0, 0, W, H);
+
+  // the hum: ripples that quicken with advert traffic
+  const rate = .05 + Math.min(snap.hum, 60) / 150;
+  for (let i = 0; i < 4; i++) {
+    const p = (t * rate + i / 4) % 1;
+    rc.beginPath(); rc.arc(cx, cy, p * R, 0, TAU);
+    rc.strokeStyle = `rgba(179,18,31,${.2 * (1 - p)})`; rc.lineWidth = 1; rc.stroke();
+  }
+  // rings
+  rc.font = '10px ' + getComputedStyle(document.body).fontFamily; rc.textAlign = 'center';
+  ZONE.forEach(([name, ft], i) => {
+    const r = radius(ft);
+    rc.beginPath(); rc.setLineDash(i ? [2, 7] : []); rc.arc(cx, cy, r, 0, TAU);
+    rc.strokeStyle = ['#7a1820', '#4c151a', '#341215'][i]; rc.lineWidth = 1; rc.stroke(); rc.setLineDash([]);
+    rc.fillStyle = '#6c5557'; rc.fillText(`${name.toUpperCase()} · ${ft} FT`, cx, cy - r - 5);
+  });
+  rc.fillStyle = '#3d3032'; rc.fillText('THE VEIL', cx, cy - R - 8);
+  // outer ritual band
+  rc.save(); rc.translate(cx, cy); rc.rotate(t * .01);
+  for (let i = 0; i < 72; i++) {
+    rc.rotate(TAU / 72); rc.beginPath(); rc.moveTo(R + 4, 0); rc.lineTo(R + (i % 6 ? 9 : 16), 0);
+    rc.strokeStyle = i % 6 ? '#2e1619' : '#7a1820'; rc.stroke();
+  }
+  rc.restore();
+  rc.beginPath(); rc.arc(cx, cy, R + 2, 0, TAU); rc.strokeStyle = '#3a1216'; rc.stroke();
+  // you
+  rc.save(); rc.translate(cx, cy); rc.strokeStyle = '#e9dcc8'; rc.lineWidth = 1.3; rc.shadowColor = '#ff2a1a'; rc.shadowBlur = 14;
+  rc.beginPath(); rc.arc(0, 0, 7, 0, TAU);
+  for (let i = 0; i < 4; i++) { const a = i * TAU / 4 + Math.PI / 4; rc.moveTo(Math.cos(a) * 7, Math.sin(a) * 7); rc.lineTo(Math.cos(a) * 15, Math.sin(a) * 15); }
+  rc.moveTo(0, 7); rc.lineTo(0, 24); rc.stroke(); rc.restore();
+
+  const order = [...live.values()].sort((a, b) => b.zone - a.zone);
+  for (const o of order) {
+    o.sf += (o.feet - o.sf) * Math.min(1, dt * 1.5);
+    o.alpha += ((o.gone ? 0 : 1) - o.alpha) * Math.min(1, dt * 4);
+    if (o.gone && o.alpha < .02) { live.delete(o.id); continue; }
+    o.a += o.drift;
+    const r = radius(o.sf);
+    o.x = cx + Math.cos(o.a) * r; o.y = cy + Math.sin(o.a) * r;
+    const s = o.m === 'wifi' ? 7 : [17, 13, 10, 8][o.zone];
+    if (o.id === picked) { rc.beginPath(); rc.moveTo(cx, cy); rc.lineTo(o.x, o.y); rc.strokeStyle = '#e9dcc855'; rc.setLineDash([3, 5]); rc.stroke(); rc.setLineDash([]); }
+    sigil(o, o.x, o.y, s, t);
+    if (o.zone <= 1 || unveiled || o.id === picked) {
+      rc.globalAlpha = o.alpha * (o.zone <= 1 ? 1 : .6);
+      rc.fillStyle = o.fam ? '#9c8f80' : o.zone === 0 ? '#ff4a36' : '#e9dcc8';
+      const real = o.label || o.vendor || (o.m === 'wifi' ? 'hidden' : o.addr.slice(-8));
+      rc.fillText(unveiled ? real : o.name.toUpperCase(), o.x, o.y + s * 1.5 + 13);
+      rc.fillStyle = '#8d7b78';
+      rc.fillText(`~${Math.round(o.sf)} ft` + (o.trend === 'approach' ? ' ▲' : o.trend === 'recede' ? ' ▽' : ''), o.x, o.y + s * 1.5 + 25);
+      rc.globalAlpha = 1;
+    }
+  }
+}
+
+function drawTide(t) {
+  const b = tide.getBoundingClientRect(), w = b.width, h = b.height, base = h - 16;
+  tc.clearRect(0, 0, w, h);
+  const chans = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165];
+  const xOf = i => 20 + (w - 40) * (i + (i > 12 ? 1.5 : 0)) / (chans.length + 1.5);
+  const amp = x => {
+    let y = 0;
+    chans.forEach((c, i) => { const s = snap.waves[c]; if (s) { const d = (x - xOf(i)) / ((w / chans.length) * (i > 12 ? .8 : 2.2)); y += s * Math.exp(-d * d); } });
+    return y;
+  };
+  for (let layer = 2; layer >= 0; layer--) {
+    tc.beginPath(); tc.moveTo(0, base);
+    for (let x = 0; x <= w; x += 4) {
+      const a = amp(x), wob = Math.sin(x * .05 + t * (1.2 + layer * .5) + layer) * (2 + a * 5);
+      tc.lineTo(x, base - Math.min(a, 1.4) * (h - 34) * (.55 + layer * .2) - wob - 2);
+    }
+    tc.lineTo(w, base); tc.closePath();
+    tc.fillStyle = ['#b3121f55', '#7a182044', '#3a121633'][layer]; tc.fill();
+    tc.strokeStyle = ['#ff4a36', '#b3121f', '#5a161c'][layer]; tc.lineWidth = 1; tc.stroke();
+  }
+  tc.font = '9px monospace'; tc.textAlign = 'center';
+  chans.forEach((c, i) => { tc.fillStyle = snap.waves[c] ? '#e9dcc8' : '#4a3d3f'; if (i < 13 || i % 2 === 1 || snap.waves[c]) tc.fillText(c, xOf(i), h - 4); });
+}
+
+let lastT = 0;
+function loop(ms) {
+  const t = ms / 1000;
+  drawRadar(t, Math.min(.5, t - lastT)); lastT = t; drawTide(t);
+  setTimeout(() => requestAnimationFrame(loop), 1000 / 30 - 8);
+}
+requestAnimationFrame(loop);
+
+function hit(ev) {
+  const b = radar.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top;
+  let best = null, bd = 30;
+  for (const o of live.values()) { const d = Math.hypot(o.x - x, o.y - y); if (d < bd && !o.gone) { bd = d; best = o; } }
+  return best;
+}
+
+function card(o, ev) {
+  const k = KIND[o.kind] || KIND.shade, c = $('card');
+  c.innerHTML = `<div class="kind">${k.label}${o.fam ? ' · familiar' : ''}</div><h3>${o.name}</h3>
+    <div class="gloss">${k.gloss}</div>
+    <dl><dt>distance</dt><dd>~${Math.round(o.feet)} ft · ${['touch', 'near', 'far', 'beyond the veil'][o.zone]}</dd>
+    <dt>motion</dt><dd>${{ approach: 'drawing closer', recede: 'pulling away', still: 'holding' }[o.trend]}</dd>
+    <dt>lingered</dt><dd>${span(o.age)}</dd></dl>
+    <dl class="true"><dt>medium</dt><dd>${{ ble: 'bluetooth le', wifi: 'wifi beacon', air: 'wifi client' }[o.m] + (o.chan ? ' · ch ' + o.chan : '')}</dd>${o.bound ? `
+    <dt>bound to</dt><dd>${esc(o.bound)}</dd>` : ''}
+    <dt>calls itself</dt><dd>${esc(o.label || '(nothing)')}</dd>
+    <dt>maker</dt><dd>${esc(o.vendor || 'unknown')}</dd>
+    <dt>address</dt><dd>${o.addr}</dd><dt>signal</dt><dd>${o.rssi} dBm</dd></dl>
+    <p class="note">Distance is a guess from signal strength; walls and bodies bend it. Bearing on the glass is symbolic.</p>
+    <div class="row"><button id="bind" class="${o.fam ? 'on' : ''}">${o.fam ? 'release familiar' : 'bind as familiar'}</button><button id="shut">close</button></div>`;
+  c.style.display = 'block';
+  if (ev) {
+    c.style.left = Math.max(8, Math.min(innerWidth - 310, ev.clientX + 18)) + 'px';
+    c.style.top = Math.max(8, Math.min(innerHeight - c.offsetHeight - 8, ev.clientY - 40)) + 'px';
+  }
+  $('shut').onclick = () => { c.style.display = 'none'; picked = null; };
+  $('bind').onclick = () => fetch('/api/familiar', { method: 'POST', body: JSON.stringify({ id: o.id, on: !o.fam }) });
+}
+
+radar.addEventListener('pointerdown', ev => {
+  const o = hit(ev);
+  if (o) { picked = o.id; card(o, ev); } else { $('card').style.display = 'none'; picked = null; }
+});
+radar.addEventListener('pointermove', ev => {
+  const o = ev.pointerType === 'mouse' && hit(ev), tip = $('tip');
+  if (!o) { tip.style.display = 'none'; return; }
+  tip.textContent = `${(KIND[o.kind] || KIND.shade).label} ${o.name} · ~${Math.round(o.feet)} ft`;
+  tip.style.display = 'block'; tip.style.left = ev.clientX + 14 + 'px'; tip.style.top = ev.clientY + 14 + 'px';
+});
+$('omens').addEventListener('click', ev => {
+  const el = ev.target.closest('.omen'), o = el && live.get(el.dataset.ent);
+  if (o) { picked = o.id; card(o, { clientX: innerWidth - 660, clientY: el.getBoundingClientRect().top }); }
+});
+$('unveil').onclick = e => { unveiled = !unveiled; e.target.classList.toggle('on', unveiled); e.target.textContent = unveiled ? 'veil' : 'lift veil'; };
+$('voice').onclick = e => { voice = !voice; e.target.classList.toggle('on', voice); if (voice) toll(); };
+const tock = () => $('clock').textContent = new Date().toLocaleTimeString([], { hour12: false });
+tock(); setInterval(tock, 1000);
+
+function listen() {
+  const es = new EventSource('/events');
+  es.onmessage = ev => merge(JSON.parse(ev.data));
+  es.onerror = () => { $('state').innerHTML = '<span class="bad">the glass has gone dark · retrying</span>'; };
+}
+listen();
+</script>
+</body>
+</html>

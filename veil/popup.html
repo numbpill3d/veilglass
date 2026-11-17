@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>veilglass shroud</title>
+<style>
+  :root { --void:#0a0606; --blood:#b3121f; --ember:#e0303d; --bone:#e8dcc4; --ash:#7d6f62; --line:#2a1a1a; }
+  * { box-sizing: border-box; }
+  body { margin:0; width:280px; background:var(--void); color:var(--bone);
+         font:13px/1.4 "IBM Plex Mono", ui-monospace, monospace; }
+  header { padding:12px 14px 10px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  header img { width:24px; height:24px; }
+  h1 { font-size:13px; margin:0; letter-spacing:.18em; text-transform:uppercase; }
+  .state { font-size:11px; color:var(--ash); }
+  .state.on { color:var(--ember); }
+  section { padding:10px 14px; border-bottom:1px solid var(--line); }
+  h2 { font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--ash); margin:0 0 6px; font-weight:normal; }
+  label { display:flex; justify-content:space-between; align-items:center; padding:4px 0; cursor:pointer; }
+  label small { color:var(--ash); display:block; font-size:10.5px; }
+  input[type=checkbox] { appearance:none; width:28px; height:14px; border:1px solid var(--ash); border-radius:7px;
+         position:relative; flex:none; cursor:pointer; margin:0 0 0 10px; }
+  input[type=checkbox]::after { content:""; position:absolute; top:2px; left:2px; width:8px; height:8px;
+         border-radius:50%; background:var(--ash); transition:left .12s; }
+  input[type=checkbox]:checked { border-color:var(--blood); }
+  input[type=checkbox]:checked::after { left:16px; background:var(--ember); }
+  input:focus-visible { outline:1px solid var(--bone); outline-offset:2px; }
+  #host { color:var(--bone); word-break:break-all; }
+  footer { padding:10px 14px; font-size:11px; color:var(--ash); }
+  footer a { color:var(--bone); }
+  .hint { color:var(--ember); font-size:11px; min-height:1em; }
+</style>
+</head>
+<body>
+<header>
+  <img src="icons/48.png" alt="">
+  <div><h1>shroud</h1><div class="state" id="state">…</div></div>
+</header>
+<section>
+  <label>veil every page<input type="checkbox" id="enabled"></label>
+  <label><span>this site<small id="host">—</small></span><input type="checkbox" id="site"></label>
+  <div class="hint" id="hint"></div>
+</section>
+<section>
+  <h2>surfaces</h2>
+  <label><span>canvas<small>image hash noise</small></span><input type="checkbox" data-mod="canvas"></label>
+  <label><span>webgl<small>GPU model blur, pixel noise</small></span><input type="checkbox" data-mod="webgl"></label>
+  <label><span>audio<small>waveform wobble</small></span><input type="checkbox" data-mod="audio"></label>
+  <label><span>fonts<small>text metric wobble</small></span><input type="checkbox" data-mod="fonts"></label>
+  <label><span>hardware<small>4 cores, 8 GB</small></span><input type="checkbox" data-mod="nav"></label>
+  <label><span>battery<small>always full, plugged in</small></span><input type="checkbox" data-mod="battery"></label>
+  <label><span>webrtc<small>no local or real IP over UDP</small></span><input type="checkbox" id="webrtc"></label>
+</section>
+<footer>New shroud on every reload. <a href="http://127.0.0.1:7733/veil-check" target="_blank">veil check</a> needs the glass running.</footer>
+<script src="popup.js"></script>
+</body>
+</html>

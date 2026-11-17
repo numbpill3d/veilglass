@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veil Check</title>
+<style>
+  :root { --void:#0a0606; --blood:#b3121f; --ember:#e0303d; --bone:#e8dcc4; --ash:#7d6f62; --line:#2a1a1a; }
+  body { margin:0; background:var(--void); color:var(--bone); font:14px/1.5 "IBM Plex Mono", ui-monospace, monospace; }
+  main { max-width:760px; margin:0 auto; padding:32px 16px; }
+  h1 { font-size:15px; letter-spacing:.25em; text-transform:uppercase; margin:0 0 4px; }
+  p { color:var(--ash); margin:0 0 24px; }
+  table { width:100%; border-collapse:collapse; }
+  td { padding:7px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+  td:first-child { color:var(--ash); width:38%; padding-right:12px; }
+  td:last-child { word-break:break-all; }
+  .pass { color:var(--bone); } .fail { color:var(--ember); }
+  .verdict { margin-top:24px; padding:12px 14px; border:1px solid var(--blood); }
+</style>
+</head>
+<body>
+<main>
+<h1>veil check</h1>
+<p>Reload this page: under a shroud the canvas, webgl and audio hashes change every load
+but stay the same within one load. Without one they never change.</p>
+<table id="t"></table>
+<div class="verdict" id="verdict">reading…</div>
+<pre id="out" hidden></pre>
+</main>
+<script>
+(async () => {
+  const rows = [];
+  const add = (k, v, ok) => rows.push([k, v, ok]);
+  async function sha(buf) {
+    const d = await crypto.subtle.digest("SHA-256", buf);
+    return [...new Uint8Array(d)].slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  const enc = (s) => new TextEncoder().encode(s);
+  function draw(c) {
+    c.width = 280; c.height = 60;
+    const x = c.getContext("2d");
+    x.textBaseline = "top"; x.font = "16px 'Arial'";
+    x.fillStyle = "#f60"; x.fillRect(100, 1, 62, 20);
+    x.fillStyle = "#069"; x.fillText("veilglass \u{1F441} 7733", 2, 15);
+    x.fillStyle = "rgba(102,204,0,0.7)"; x.fillText("veilglass \u{1F441} 7733", 4, 17);
+    x.beginPath(); x.arc(50, 30, 20, 0, Math.PI * 2); x.stroke();
+    return c;
+  }
+  const res = {};
+  const c = draw(document.createElement("canvas"));
+  res.canvasA = await sha(enc(c.toDataURL()));
+  res.canvasB = await sha(enc(draw(document.createElement("canvas")).toDataURL()));
+  add("canvas hash", res.canvasA);
+  add("canvas twice, same page", res.canvasA === res.canvasB ? "agrees" : "differs", res.canvasA === res.canvasB);
+
+  // clean-iframe trick
+  const f = document.createElement("iframe");
+  f.style.display = "none"; document.body.appendChild(f);
+  const fc = draw(f.contentWindow.document.createElement("canvas"));
+  res.iframeCanvas = await sha(enc(f.contentWindow.HTMLCanvasElement.prototype.toDataURL.call(fc)));
+  const fts = f.contentWindow.Function.prototype.toString;
+  const fnat = [f.contentWindow.HTMLCanvasElement.prototype.toDataURL, fts].every((fn) => /\[native code\]/.test(fts.call(fn)) && fts.call(fn).includes(fn.name));
+  const crossNat = /\[native code\]/.test(Function.prototype.toString.call(f.contentWindow.HTMLCanvasElement.prototype.toDataURL));
+  res.iframeNative = fnat && crossNat;
+  add("iframe functions look native", res.iframeNative ? "yes" : "no", res.iframeNative);
+  add("canvas via blank iframe", res.iframeCanvas === res.canvasA ? "agrees with page" : "differs from page", res.iframeCanvas === res.canvasA);
+
+  // webgl
+  try {
+    const gl = document.createElement("canvas").getContext("webgl");
+    const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+    res.renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    gl.clearColor(0.2, 0.4, 0.6, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+    const px = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+    gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    res.webglPixels = await sha(px);
+  } catch (e) { res.renderer = "webgl unavailable"; }
+  add("gpu renderer", res.renderer);
+  add("webgl pixel hash", res.webglPixels || "—");
+
+  // audio
+  try {
+    const ac = new OfflineAudioContext(1, 5000, 44100);
+    const o = ac.createOscillator(); o.type = "triangle"; o.frequency.value = 10000;
+    const comp = ac.createDynamicsCompressor();
+    o.connect(comp); comp.connect(ac.destination); o.start(0);
+    const buf = await ac.startRendering();
+    res.audio = await sha(buf.getChannelData(0).slice(4500).buffer);
+  } catch (e) { res.audio = "unavailable"; }
+  add("audio hash", res.audio);
+
+  // fonts
+  const m = document.createElement("canvas").getContext("2d");
+  m.font = "72px monospace";
+  res.fontWidth = m.measureText("mmmmmmmmmmlli").width;
+  add("text width", String(res.fontWidth));
+
+  add("cpu cores", String(navigator.hardwareConcurrency));
+  add("memory", navigator.deviceMemory === undefined ? "hidden" : navigator.deviceMemory + " GB");
+  if (navigator.getBattery) {
+    const b = await navigator.getBattery();
+    add("battery", `${Math.round(b.level * 100)}% ${b.charging ? "charging" : "draining"}`);
+  }
+
+  // disguise
+  const fns = [HTMLCanvasElement.prototype.toDataURL, CanvasRenderingContext2D.prototype.getImageData,
+    Object.getOwnPropertyDescriptor(Navigator.prototype, "hardwareConcurrency").get, Function.prototype.toString];
+  const native = fns.every((fn) => /\{\s*\[native code\]\s*\}$/.test(Function.prototype.toString.call(fn)) &&
+    Function.prototype.toString.call(fn).includes(fn.name.replace(/^get /, "")));
+  res.native = native;
+  add("patched functions look native", native ? "yes" : "no", native);
+  res.ownProps = Object.getOwnPropertyNames(navigator).length;
+  add("own props on navigator", String(res.ownProps), res.ownProps === 0);
+  res.handoffGone = !("__veilglass_shroud__" in window);
+  add("handoff sealed", res.handoffGone ? "yes" : "no", res.handoffGone);
+
+  // stash this load's hashes to compare on the next one
+  let prev = null;
+  try { prev = JSON.parse(localStorage.getItem("veilcheck") || "null"); localStorage.setItem("veilcheck", JSON.stringify(res)); } catch (_) {}
+  if (prev) {
+    const moved = prev.canvasA !== res.canvasA;
+    add("canvas since last load", moved ? "changed (veiled)" : "unchanged (bare)", moved);
+    res.moved = moved;
+  }
+
+  const t = document.getElementById("t");
+  for (const [k, v, ok] of rows) {
+    const tr = t.insertRow();
+    tr.insertCell().textContent = k;
+    const td = tr.insertCell(); td.textContent = v;
+    if (ok !== undefined) td.className = ok ? "pass" : "fail";
+  }
+  document.getElementById("verdict").textContent = prev === null
+    ? "First reading stored. Reload once to compare."
+    : res.moved ? "The veil holds: this page cannot follow your canvas from the last load."
+                : "Bare: your canvas fingerprint is the same as last load.";
+  const out = document.getElementById("out");
+  out.textContent = JSON.stringify(res);
+  document.title = "Veil Check";
+  document.body.dataset.done = "1";
+})();
+</script>
+</body>
+</html>
