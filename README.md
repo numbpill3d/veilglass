@@ -10,6 +10,8 @@ go looking for them online.
   fingerprint, for when an SSID, vendor or hostname the glass turned up sends
   you to look at that infrastructure on the web.
 
+![The glass in demo mode: veiled entities on distance rings, a census of kinds, a feed of omens, and the Wi-Fi channel tide](docs/glass.png)
+
 It listens to Bluetooth LE advertisements and Wi-Fi beacons, gives every
 emitter a veiled name and sigil, estimates distance from signal strength, and
 raises omens when something crosses a ring.
@@ -81,11 +83,18 @@ recognise again later:
 | Battery | always full and plugged in |
 | WebRTC | no local or real IP handed out over UDP |
 
+<p>
+  <img src="docs/popup.png" width="280" alt="The shroud popup: veil every page, per-site switch, and a switch for each surface">
+  &nbsp;
+  <img src="docs/veil-check.png" width="520" alt="Veil check page after a reload: hashes agree within the page, iframe agrees, functions look native, canvas changed since last load">
+</p>
+
 The noise is fixed for the life of a page, so a script that reads twice sees
 the same answer, and it is drawn fresh on every load, so the hash never
 follows you to the next visit. Patched functions still report themselves as
 native code, and blank iframes, a common way to fetch clean copies, are
-covered too. The popup turns surfaces on or off and exempts sites that break.
+covered too and share the page's noise, so comparing the two gives nothing
+away. The popup turns surfaces on or off and exempts sites that break.
 
 ### Investigating
 
@@ -107,6 +116,18 @@ With the glass running, open <http://127.0.0.1:7733/veil-check> and reload it.
 Shrouded, the canvas, WebGL and audio hashes change on every load but agree
 within one. Bare, they never change.
 
+### Testing
+
+    tests/run.sh            # end-to-end in headless Chromium, demo glass
+    tests/run.sh --shots    # same, and refresh the screenshots in docs/
+
+The test drives Chromium over the DevTools protocol. It checks that every
+surface is veiled, that answers hold within a load and change across loads,
+that iframes and `toString` give nothing away, that the per-site and
+per-surface switches and the WebRTC seal take effect, and that the glass
+renders. Tested on Chromium 157. Firefox 128+ should work but has not been
+tested yet.
+
 ### What the shroud does not do
 
 Read this before trusting it with anything that matters.
@@ -115,9 +136,7 @@ Read this before trusting it with anything that matters.
   more than any canvas does. Use `--tor`, a VPN, or a proxy.
 - **Noise can be detected.** Tools like CreepJS can tell that a canvas is
   being tampered with. They can't use the noise to follow you, but they can
-  see it, and that itself is a rare trait. Same-origin frames also draw their
-  own noise, so a page that compares its own canvas with a frame's will see
-  a mismatch.
+  see it, and that itself is a rare trait.
 - **Workers are not covered.** Content scripts don't run in Web Workers, so a
   fingerprint drawn on an `OffscreenCanvas` inside a worker is bare.
 - **The first page after install or a settings change** can load before the

@@ -164,6 +164,20 @@
   window[KEY] = {
     hookMethod, hookGetter, noisePixels, mix, strHash, installers,
     isFirefox: /Firefox\//.test(navigator.userAgent),
-    run() { install(window); },
+    run() {
+      // In a same-origin child frame whose parent already wears a shroud, let
+      // the parent's shroud veil us (reading our own frameElement.contentWindow
+      // goes through its hook), so the whole page shares one seed and a frame
+      // can't be used to spot the noise.
+      try {
+        const fe = window.frameElement;
+        const native = (f) => nativeToString.call(f).includes("[native code]");
+        if (fe && !native(window.parent.Function.prototype.toString)) {
+          void fe.contentWindow;
+          if (!native(window.Function.prototype.toString)) return;
+        }
+      } catch (_) {}
+      install(window);
+    },
   };
 })();
