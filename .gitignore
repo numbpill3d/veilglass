@@ -4,3 +4,4 @@ __pycache__/
 *.zip
 *.xpi
 web-ext-artifacts/
+.impeccable/

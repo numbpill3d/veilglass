@@ -1,52 +1,100 @@
 # veilglass
 
-A scrying slate for the radio presences around you, and a shroud for when you
-go looking for them online.
+A plain report of the radio devices around you, on a 90s Macintosh desktop.
+Plus a browser fingerprint shroud for when you go looking up what it finds.
 
-- **The glass** listens to Bluetooth LE and Wi-Fi, and shows every emitter
-  around you as a veiled entity. Built for the Surface Go 2 as a touch
-  dashboard; runs anywhere with BlueZ and NetworkManager.
-- **The shroud** (`veil/`) is a browser extension that blurs your browser's
-  fingerprint, for when an SSID, vendor or hostname the glass turned up sends
-  you to look at that infrastructure on the web.
+veilglass listens to Bluetooth LE and Wi-Fi and lists every device it can
+hear. For each one it shows what the device probably is and the evidence for
+that guess, how strong its signal is, and a likely distance range. Everything
+on screen comes from a radio. There are no invented names, no fake bearing
+and no demo data. It only listens: it never connects to or transmits at
+anything.
 
-![The glass in demo mode: veiled entities on distance rings, a census of kinds, a feed of omens, and the Wi-Fi channel tide](docs/glass.png)
+It was built as a touch dashboard for a Surface Go 2, in a System 7 style with
+black, blood red and bone colours. It runs on any Linux machine with BlueZ and
+NetworkManager.
 
-It listens to Bluetooth LE advertisements and Wi-Fi beacons, gives every
-emitter a veiled name and sigil, estimates distance from signal strength, and
-raises omens when something crosses a ring.
+![The monitor on real radios: Nearby Devices with 90-second signal sparklines, Range Estimate by type, Activity over the last two minutes, Wi-Fi Channels and the Event Log. Network names and addresses are redacted.](docs/glass.png)
+
+![The Info window for a Bluetooth device: its type and the evidence for it (an Apple Find My broadcast), address type, maker data, signal, distance range, and a 90-second signal chart](docs/info.png)
+
+*Screenshots from real radios. Network names and addresses are
+replaced with x's.*
+
+The shroud (`veil/`) is a separate browser extension. It blurs your
+browser's fingerprint, for when an SSID, vendor or hostname turned up by
+veilglass sends you to that infrastructure on the web. See [The
+shroud](#the-shroud).
+
+## Running it
 
     ./install.sh                              # venv, deps, systemd user unit
     systemctl --user enable --now veilglass   # start listening
-    ./kiosk.sh                                # fullscreen glass
-    .venv/bin/python server.py --demo         # synthetic presences, no radios
+    ./kiosk.sh                                # fullscreen at http://127.0.0.1:7733
 
-Bluetooth must be on: `rfkill unblock bluetooth`.
+Bluetooth must be on: `rfkill unblock bluetooth`. There is no demo mode.
+Everything on screen comes from a radio.
 
-## Reading the glass
+## Reading it
 
-| Kind | What it usually is |
+**Nearby Devices** lists everything heard, sortable by signal, distance,
+name, type or age. Each row has a 90-second signal sparkline (gaps mean the
+device was not heard that second) and a small activity light that flashes
+with the packets that arrived in the last second. Tap a row for its **Info**
+window, which shows:
+
+- every field the radio gave away: address and address type (public, random
+  static, or rotating private), maker from the OUI or Bluetooth company ID,
+  advertised name and Tx power, channel, security and rate for access points
+- **why it got its type**, as a list of evidence such as
+  `Apple continuity: Find My broadcast`, `service 0x180D Heart Rate` or
+  `name contains "buds"`. When nothing identifies it, it says so and the type
+  is Unknown.
+- a 90-second signal chart, and a "This is mine" box (dims your own gear and
+  keeps it out of the log)
+
+| Type | Evidence it usually comes from |
 |---|---|
-| Walker | phone or tablet |
-| Listener | earbuds, headphones |
-| Tether | tracker tag (also Apple devices in Find My mode) |
-| Pulse | watch or band |
-| Engine | computer, TV |
-| Lantern | fixed beacon |
-| Relic | peripheral or gadget |
-| Pillar / Flamebearer | Wi-Fi access point / phone hotspot |
-| Drifter | device talking over Wi-Fi (needs airwatch) |
-| Seeker | unjoined device probing for a network (needs airwatch) |
-| Shade | gives nothing away |
+| Phone / tablet | Apple Nearby Info, Handoff or AirDrop; Exposure Notification; name |
+| Audio | Apple Proximity Pairing, Google Fast Pair, Bose/Jabra/Sonos data; name |
+| Tracker / Find My | Apple Find My, Tile, Samsung SmartTag, Google Find My Device tags |
+| Wearable | Heart Rate or fitness services, Garmin/Huami data; name |
+| Computer / TV | Microsoft beacon (Windows PCs), AirPlay target; name |
+| Beacon | iBeacon, Eddystone, environmental sensors |
+| Peripheral | HID service, Logitech data; name |
+| Access point / Hotspot | Wi-Fi beacons; hotspot when the network name looks like a phone's |
+| Wi-Fi client / Probing device | frames heard by airwatch (below) |
+| Unknown | nothing in the broadcast identifies it |
 
-Rings sit at 6, 20 and 60 ft. Tap a sigil for its true details and to bind it
-as a familiar (your own gear: dimmed, never raises omens). "Lift veil" swaps
-veiled names for what each device calls itself. "Voice" tolls a bell on alarms.
+Apple's Nearby Info is sent by iPhones, iPads, Macs and Watches alike, so an
+Apple "Phone / tablet" can be any of them. A Find My broadcast is an AirTag
+or an Apple device separated from its owner.
+
+**Range Estimate** plots each device on a log distance axis, one row per type.
+The dot is the estimate, the bar is the likely range (path-loss exponent from
+2, open air, to 3.5, a cluttered room). Dots ease to new estimates and ring
+when packets arrive. Vertical position within a row only keeps dots apart.
+
+**Activity** scrolls the last two minutes: advertisements and frames per
+second (bars), devices heard (line), Wi-Fi access points (grey line).
+
+**Wi-Fi Channels** shows how many access points sit on each 2.4 and 5 GHz
+channel, filled by the strongest one.
+
+**Event Log** records new devices within 20 ft, devices crossing 6, 20 and 60
+ft, devices dropping out, big changes in how many devices are within 60 ft,
+and any tracker that stays within 20 ft for 10 minutes. The first 20 seconds
+after launch are quiet while the first sweep fills the list. Access points
+never log, since they do not move. Special > Beep on Alerts plays a beep for
+the serious ones, and `--notify` sends them to the desktop too.
+
+The menu bar shows which radios are listening. Double-click a title bar to
+roll a window up.
 
 ## Hearing Wi-Fi clients (airwatch)
 
 Phones that are quiet on Bluetooth still talk on Wi-Fi. `airwatch.py` opens a
-monitor interface as root and feeds those sightings to the glass.
+monitor interface as root and feeds those sightings to the monitor.
 
     sudo ./airwatch.py          # share mode: stay online, hear only your own channel
     sudo ./airwatch.py --hop    # hop mode: sweep all channels, wifi is DOWN until ctrl-c
@@ -59,16 +107,23 @@ wifi. If hop mode ever leaves wifi down:
 
 ## Limits
 
-- Distance comes from signal strength alone; walls and bodies skew it a lot.
-- Bearing is symbolic. One antenna cannot tell direction.
-- Phones rotate their Bluetooth address every ~15 minutes, so a Walker will
-  fade and return under a new name, and a bound familiar will not stay bound.
+- Distance comes from signal strength alone; walls and bodies skew it a lot,
+  which is why it is shown as a range.
+- There is no bearing. One antenna cannot tell direction.
+- Wi-Fi signal from NetworkManager is a percentage (0-100 maps to -100 to -40
+  dBm), refreshed every 5 seconds. dBm shown for access points is converted.
+- Phones rotate their Bluetooth address about every 15 minutes, so the same
+  phone leaves the list and comes back as a new entry, and "mine" will not
+  stick to it.
 - Listen-only: it never connects to a device, and stores nothing but the
-  addresses you bind (`~/.config/veilglass/familiars.json`).
+  addresses you mark as yours (`~/.config/veilglass/mine.json`).
+
+The interface font is ChicagoFLF by Robin Casady, public domain
+(`fonts/LICENSE.ChicagoFLF`).
 
 ## The shroud
 
-Looking up what the glass found (a captive portal, a camera's admin page, a
+Looking up what the monitor found (a captive portal, a camera's admin page, a
 vendor's cloud) shows your browser to whoever runs it. `veil/` is a Manifest V3
 extension for Chromium and Firefox that makes that browser harder to
 recognise again later:
@@ -112,20 +167,20 @@ To install the shroud in your everyday browser instead: Chromium,
 
 ### Checking the veil
 
-With the glass running, open <http://127.0.0.1:7733/veil-check> and reload it.
+With the monitor running, open <http://127.0.0.1:7733/veil-check> and reload it.
 Shrouded, the canvas, WebGL and audio hashes change on every load but agree
 within one. Bare, they never change.
 
 ### Testing
 
-    tests/run.sh            # end-to-end in headless Chromium, demo glass
-    tests/run.sh --shots    # same, and refresh the screenshots in docs/
+    tests/run.sh            # end-to-end in headless Chromium
+    tests/run.sh --shots    # same, and refresh the shroud screenshots in docs/
 
 The test drives Chromium over the DevTools protocol. It checks that every
 surface is veiled, that answers hold within a load and change across loads,
 that iframes and `toString` give nothing away, that the per-site and
-per-surface switches and the WebRTC seal take effect, and that the glass
-renders. Tested on Chromium 157. Firefox 128+ should work but has not been
+per-surface switches and the WebRTC seal take effect, and that the monitor
+page renders its empty state with the radios off. Tested on Chromium 157. Firefox 128+ should work but has not been
 tested yet.
 
 ### What the shroud does not do

@@ -5,364 +5,755 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>veilglass</title>
 <style>
+@font-face { font-family: "ChicagoFLF"; src: url("/fonts/ChicagoFLF.ttf") format("truetype"); }
 :root {
   --void: #060405; --pitch: #0d090a; --seam: #2a1518; --ash: #5b4c4d;
   --blood: #b3121f; --ember: #ff4a36; --bone: #e9dcc8; --dim: #8d7b78;
-  --display: "Cinzel", "Cormorant Garamond", "IM Fell English", "Palatino Linotype", Georgia, serif;
-  --mono: "JetBrains Mono", "Fira Code", "Hack", monospace;
+  --chicago: "ChicagoFLF", "Chicago", "Charcoal", "Geneva", sans-serif;
+  --mono: "Monaco", "Terminess Nerd Font Mono", "DejaVu Sans Mono", monospace;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; margin: 0; background: var(--void); color: var(--bone); overflow: hidden;
-  font-family: var(--mono); font-size: 13px; user-select: none; }
-#frame { display: grid; height: 100%; grid-template: 44px 1fr 108px / 1fr 320px; }
-header { grid-column: 1 / 3; display: flex; align-items: center; gap: 18px; padding: 0 14px;
-  border-bottom: 1px solid var(--seam); background: linear-gradient(#120a0b, var(--void)); }
-header h1 { margin: 0; font: 600 17px var(--display); letter-spacing: .42em; color: var(--ember);
-  text-shadow: 0 0 12px #b3121f99; }
-header h1 span { color: var(--bone); }
-#state { flex: 1; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#state b { color: var(--bone); font-weight: 400; }
-#state .bad { color: var(--ember); }
-button { font: 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--dim);
-  background: none; border: 1px solid var(--seam); padding: 7px 11px; cursor: pointer; }
-button.on { color: var(--void); background: var(--blood); border-color: var(--ember); }
-#clock { color: var(--bone); letter-spacing: .1em; }
-#glass { position: relative; min-width: 0; min-height: 0; }
-#glass canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-aside { border-left: 1px solid var(--seam); background: var(--pitch); display: flex; flex-direction: column; min-height: 0; }
-aside h2, footer h2 { margin: 0; padding: 9px 12px 6px; font: 600 11px var(--display); letter-spacing: .34em;
-  color: var(--blood); text-transform: uppercase; }
-#census { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; padding: 0 12px 10px;
-  border-bottom: 1px solid var(--seam); }
-#census div { display: flex; justify-content: space-between; color: var(--dim); }
-#census div b { color: var(--bone); font-weight: 400; }
-#census div.zero { opacity: .35; }
-#omens { flex: 1; overflow-y: auto; padding: 0 12px 12px; scrollbar-width: thin; scrollbar-color: var(--seam) transparent; }
-.omen { padding: 7px 0 7px 10px; border-left: 2px solid var(--seam); margin-bottom: 4px; color: var(--dim); line-height: 1.35; cursor: pointer; }
-.omen time { display: block; font-size: 10px; color: var(--ash); letter-spacing: .1em; }
-.omen.lv1 { border-color: var(--blood); color: var(--bone); }
-.omen.lv2 { border-color: var(--ember); color: var(--ember); background: linear-gradient(90deg, #b3121f26, transparent); }
-.hush { color: var(--ash); font-style: italic; padding: 6px 0; }
-footer { grid-column: 1 / 3; border-top: 1px solid var(--seam); position: relative; }
-footer h2 { position: absolute; left: 0; top: 0; z-index: 1; }
-footer canvas { width: 100%; height: 100%; display: block; }
-#tip { position: fixed; pointer-events: none; display: none; padding: 5px 8px; background: #000d;
-  border: 1px solid var(--blood); color: var(--bone); font-size: 11px; z-index: 5; white-space: nowrap; }
-#card { position: fixed; display: none; z-index: 6; width: 300px; background: #0b0607f2;
-  border: 1px solid var(--blood); box-shadow: 0 0 34px #b3121f55, inset 0 0 0 3px var(--void), inset 0 0 0 4px var(--seam); padding: 16px; }
-#card h3 { margin: 0; font: 600 20px var(--display); letter-spacing: .16em; color: var(--ember); }
-#card .kind { color: var(--bone); letter-spacing: .2em; text-transform: uppercase; font-size: 11px; }
-#card .gloss { color: var(--dim); font-style: italic; margin: 6px 0 10px; }
-#card dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0 0 10px; }
-#card dt { color: var(--ash); } #card dd { margin: 0; color: var(--bone); word-break: break-all; }
-#card .true { border-top: 1px dashed var(--seam); padding-top: 9px; }
-#card .note { color: var(--ash); font-size: 10px; line-height: 1.4; margin: 0 0 10px; }
-#card .row { display: flex; gap: 8px; }
-@media (max-aspect-ratio: 1/1) {
-  #frame { grid-template: 44px 1fr 220px 90px / 1fr; }
-  header, footer { grid-column: 1; }
-  aside { border-left: 0; border-top: 1px solid var(--seam); }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: var(--void); color: var(--bone); font: 12px/1.25 var(--chicago);
+  -webkit-font-smoothing: none; user-select: none; }
+button, input { font: inherit; }
+
+/* menu bar */
+#menubar { position: relative; z-index: 20; height: 24px; display: flex; align-items: stretch;
+  background: var(--bone); color: var(--void); border-bottom: 1px solid var(--void);
+  box-shadow: 0 1px 0 var(--blood); }
+.mtitle { padding: 0 11px; display: flex; align-items: center; cursor: default; white-space: nowrap; }
+.mtitle.open, .mtitle:active { background: var(--void); color: var(--bone); }
+.mtitle svg { display: block; }
+#mstatus { margin-left: auto; display: flex; align-items: center; gap: 12px; padding: 0 10px; white-space: nowrap; }
+.radio { display: flex; align-items: center; gap: 4px; }
+.radio i { width: 9px; height: 9px; border: 1px solid var(--void); display: inline-block; }
+.radio.on i { background: var(--void); }
+.radio.off { color: var(--blood); }
+.radio.off i { background: repeating-linear-gradient(45deg, var(--blood) 0 1px, transparent 1px 3px); border-color: var(--blood); }
+.menu { position: absolute; top: 23px; z-index: 30; min-width: 220px; display: none; padding: 2px 0;
+  background: var(--bone); color: var(--void); border: 1px solid var(--void); box-shadow: 2px 2px 0 var(--blood); }
+.menu.open { display: block; }
+.menu div { padding: 4px 16px 4px 22px; position: relative; white-space: nowrap; min-height: 26px; display: flex; align-items: center; }
+.menu div:hover { background: var(--void); color: var(--bone); }
+.menu div.check::before { content: "\2713"; position: absolute; left: 6px; }
+.menu hr { border: 0; border-top: 1px dotted var(--ash); margin: 3px 0; }
+.menu .key { margin-left: auto; padding-left: 18px; color: var(--ash); }
+
+/* desktop */
+#desk { position: absolute; inset: 24px 0 0 0; padding: 12px; display: grid; gap: 12px;
+  grid-template: "dev range" 1fr "dev act" .72fr "log chan" .78fr / minmax(0, 1.3fr) minmax(0, 1fr);
+  background: conic-gradient(var(--seam) 25%, var(--void) 0 50%, var(--seam) 0 75%, var(--void) 0) 0 0 / 4px 4px; }
+
+/* windows */
+.win { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: var(--pitch); border: 1px solid var(--bone); box-shadow: 2px 2px 0 var(--blood); }
+.win.shaded { flex: 0 0 auto; align-self: start; }
+.win.shaded > :not(.title) { display: none; }
+.title { flex: 0 0 22px; position: relative; display: flex; align-items: center; justify-content: center;
+  border-bottom: 1px solid var(--bone); padding: 0 26px; cursor: default; touch-action: none; }
+.win.active .title { background: repeating-linear-gradient(var(--pitch) 0 1px, var(--blood) 1px 2px) 0 4px / 100% calc(100% - 8px) no-repeat; }
+.title span { background: var(--pitch); padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.win:not(.active) .title span { color: var(--dim); }
+.box { position: absolute; top: 4px; width: 13px; height: 13px; border: 1px solid var(--bone); background: var(--pitch); padding: 0; }
+.box::after { content: ""; position: absolute; inset: -9px; }  /* bigger touch target */
+.box.close { left: 7px; }
+.box.shade { right: 7px; }
+.box.shade::before { content: ""; position: absolute; left: 1px; right: 1px; top: 4px; height: 3px;
+  border-top: 1px solid var(--bone); border-bottom: 1px solid var(--bone); }
+.win:not(.active) .box { visibility: hidden; }
+.box:active { background: var(--bone); }
+.info { flex: 0 0 auto; display: flex; gap: 14px; padding: 3px 8px; border-bottom: 1px solid var(--bone);
+  color: var(--dim); white-space: nowrap; overflow: hidden; }
+.info b { color: var(--bone); font-weight: normal; }
+.body { flex: 1; min-height: 0; position: relative; }
+.body canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.foot { flex: 0 0 auto; padding: 2px 8px 3px; border-top: 1px solid var(--seam); color: var(--dim); font-size: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* scrollbars, Platinum-ish */
+.scroll { overflow-y: auto; overflow-x: hidden; }
+.scroll::-webkit-scrollbar { width: 16px; }
+.scroll::-webkit-scrollbar-track { background: conic-gradient(var(--seam) 25%, var(--pitch) 0 50%, var(--seam) 0 75%, var(--pitch) 0) 0 0 / 2px 2px;
+  border-left: 1px solid var(--bone); }
+.scroll::-webkit-scrollbar-thumb { background: var(--pitch); border: 1px solid var(--bone); box-shadow: inset 1px 1px 0 var(--ash); }
+
+/* device list */
+#w-dev { grid-area: dev; } #w-range { grid-area: range; } #w-act { grid-area: act; }
+#w-chan { grid-area: chan; } #w-log { grid-area: log; }
+.cols, .row { display: grid; grid-template-columns: 30px minmax(90px, 1.6fr) minmax(70px, 1fr) 78px 46px 92px 52px; align-items: center; }
+.cols { flex: 0 0 auto; border-bottom: 1px solid var(--bone); padding-right: 16px; }
+.cols div { padding: 3px 4px; color: var(--dim); white-space: nowrap; overflow: hidden; cursor: default; }
+.cols div.sorted { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
+#rows { flex: 1; min-height: 0; }
+.row { height: 32px; border-bottom: 1px dotted var(--seam); cursor: default; }
+.row > div { padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .sub { color: var(--dim); font-size: 12px; }
+.row.sel { background: var(--bone); color: var(--void); }
+.row.sel .sub, .row.sel .num { color: var(--void); }
+.row.mine { color: var(--ash); }
+.row.b0 .num.d { color: var(--ember); }
+.row.sel.b0 .num.d { color: var(--blood); }
+.row .num { font-family: var(--mono); font-size: 12px; color: var(--bone); }
+.row .num.d { text-align: left; }
+.ico { width: 24px; height: 24px; margin: 0 auto; background: currentColor; position: relative;
+  -webkit-mask: var(--ico) center / 24px 24px no-repeat; mask: var(--ico) center / 24px 24px no-repeat; image-rendering: pixelated; }
+.icell { position: relative; height: 100%; display: flex; align-items: center; }
+.led { width: 5px; height: 5px; position: absolute; right: -1px; top: 4px; background: var(--ember); opacity: 0; }
+.row.sel .led { background: var(--blood); }
+.spark { width: 72px; height: 20px; display: block; }
+.empty { padding: 26px 12px; text-align: center; color: var(--dim); line-height: 1.6; }
+
+/* log */
+#log { flex: 1; min-height: 0; }
+.ev { display: grid; grid-template-columns: 62px 18px 1fr; gap: 6px; align-items: start; padding: 5px 8px;
+  border-bottom: 1px dotted var(--seam); color: var(--dim); }
+.ev time { font-family: var(--mono); font-size: 12px; color: var(--dim); padding-top: 1px; }
+.ev .lv { width: 15px; height: 15px; border: 1px solid currentColor; display: grid; place-items: center; font-size: 10px; }
+.ev.lv1 { color: var(--bone); }
+.ev.lv2 { color: var(--ember); }
+.ev.lv2 .lv { background: var(--ember); color: var(--void); }
+.ev:active { background: var(--bone); color: var(--void); }
+
+/* floating windows */
+.float { position: fixed; z-index: 12; display: none; }
+.float.show { display: flex; }
+#w-info { width: 400px; max-height: calc(100% - 40px); left: calc(50% - 200px); top: 60px; }
+#w-about { width: 420px; left: calc(50% - 210px); top: 110px; z-index: 13; }
+.pad { padding: 12px 14px; }
+.head { display: flex; gap: 12px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--seam); }
+.head .ico { width: 48px; height: 48px; margin: 0; -webkit-mask-size: 48px 48px; mask-size: 48px 48px; flex: 0 0 48px; }
+.head h3 { margin: 0; font-size: 14px; font-weight: normal; word-break: break-all; }
+.head .sub { color: var(--dim); }
+.why { margin: 9px 0; padding: 0; list-style: none; }
+.why li { padding-left: 14px; position: relative; color: var(--bone); }
+.why li::before { content: "\25B8"; position: absolute; left: 0; color: var(--blood); }
+dl.kv { display: grid; grid-template-columns: 112px 1fr; gap: 2px 10px; margin: 8px 0; }
+dl.kv dt { color: var(--dim); text-align: right; }
+dl.kv dd { margin: 0; font-family: var(--mono); font-size: 12px; word-break: break-all; padding-top: 1px; }
+.chart { position: relative; height: 92px; border: 1px solid var(--bone); margin: 6px 0 4px; background: var(--void); }
+.chart canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.note { color: var(--dim); font-size: 12px; line-height: 1.4; margin: 6px 0; }
+.btns { display: flex; gap: 12px; align-items: center; justify-content: flex-end; margin-top: 10px; }
+.btn { min-width: 72px; min-height: 30px; padding: 4px 14px; color: var(--bone); background: var(--pitch);
+  border: 1px solid var(--bone); border-radius: 7px; cursor: default; }
+.btn.default { outline: 3px solid var(--pitch); box-shadow: 0 0 0 4px var(--bone); border-radius: 7px; margin: 4px; }
+.btn:active { background: var(--bone); color: var(--void); }
+label.chk { display: flex; align-items: center; gap: 8px; margin-right: auto; min-height: 30px; }
+label.chk input { appearance: none; width: 14px; height: 14px; border: 1px solid var(--bone); margin: 0; background: var(--pitch); position: relative; }
+label.chk input:checked::before, label.chk input:checked::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px;
+  border-left: 1px solid var(--bone); transform: rotate(45deg); }
+label.chk input:checked::after { transform: rotate(-45deg); }
+#w-about p { margin: 0 0 9px; line-height: 1.45; color: var(--bone); }
+#w-about p.dim { color: var(--dim); }
+
+@media (max-width: 860px), (max-aspect-ratio: 1/1) {
+  html, body { overflow: auto; }
+  #desk { position: static; grid-template: "dev" 70vh "range" 50vh "act" 34vh "chan" 34vh "log" 50vh / minmax(0, 1fr); }
+  #menubar { position: sticky; top: 0; }
+  .menu { position: fixed; }
+  #w-info, #w-about { width: calc(100% - 24px); left: 12px; }
+  .cols, .row { grid-template-columns: 30px minmax(80px, 1.6fr) 78px 46px 84px; }
+  .cols .c-kind, .row .c-kind, .cols .c-age, .row .c-age { display: none; }
 }
 </style>
 </head>
 <body>
-<div id="frame">
-  <header>
-    <h1>VEIL<span>GLASS</span></h1>
-    <div id="state">opening the glass…</div>
-    <button id="unveil" title="Show what each presence really is">lift veil</button>
-    <button id="voice" title="Toll a bell when something comes close">voice</button>
-    <div id="clock"></div>
-  </header>
-  <div id="glass"><canvas id="radar"></canvas></div>
-  <aside>
-    <h2>Census</h2>
-    <div id="census"></div>
-    <h2>Omens</h2>
-    <div id="omens"><div class="hush">the glass is still</div></div>
-  </aside>
-  <footer><h2>The Tide · wifi channel pressure</h2><canvas id="tide"></canvas></footer>
+<nav id="menubar">
+  <div class="mtitle" data-menu="m-glyph" title="veilglass" aria-label="veilglass menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+      <rect x="7" y="7" width="2" height="2" fill="#b3121f"/>
+      <path d="M4 4h1v1H4zM3 5h1v6H3zM4 11h1v1H4zM11 4h1v1h-1zM12 5h1v6h-1zM11 11h1v1h-1zM2 2h1v1H2zM1 3h1v10H1zM2 13h1v1H2zM13 2h1v1h-1zM14 3h1v10h-1zM13 13h1v1h-1zM7 9h2v6H7z" fill="#060405"/>
+    </svg>
+  </div>
+  <div class="mtitle" data-menu="m-file">File</div>
+  <div class="mtitle" data-menu="m-view">View</div>
+  <div class="mtitle" data-menu="m-special">Special</div>
+  <div id="mstatus">
+    <span class="radio" id="r-ble" title=""><i></i>Bluetooth</span>
+    <span class="radio" id="r-wifi" title=""><i></i>Wi-Fi</span>
+    <span class="radio" id="r-air" title=""><i></i>Monitor</span>
+    <span id="clock"></span>
+  </div>
+</nav>
+<div class="menu" id="m-glyph"><div data-act="about">About veilglass&hellip;</div></div>
+<div class="menu" id="m-file">
+  <div data-act="close-info">Close Info Window</div>
+  <hr><div data-act="clear-log">Clear Event Log</div>
 </div>
-<div id="tip"></div>
-<div id="card"></div>
-<script>
-const KIND = {
-  walker:   { n: 5, label: 'Walker',      gloss: 'a carried mind: phone or tablet' },
-  listener: { n: 6, label: 'Listener',    gloss: 'ears sealed in sound: earbuds or headphones' },
-  tether:   { n: 4, label: 'Tether',      gloss: 'a thing made to be found: tracker tag, or a sleeping Apple device' },
-  pulse:    { n: 7, label: 'Pulse',       gloss: 'worn against skin: watch or band' },
-  engine:   { n: 4, label: 'Engine',      gloss: 'a seated machine: computer or screen' },
-  lantern:  { n: 3, label: 'Lantern',     gloss: 'fixed and calling: beacon' },
-  relic:    { n: 8, label: 'Relic',       gloss: 'a small servant: peripheral or gadget' },
-  pillar:   { n: 2, label: 'Pillar',      gloss: 'rooted and radiating: wifi access point' },
-  flame:    { n: 3, label: 'Flamebearer', gloss: 'a pillar that walks: phone hotspot' },
-  drifter:  { n: 5, label: 'Drifter',     gloss: 'bound to a pillar: a device speaking over wifi' },
-  seeker:   { n: 7, label: 'Seeker',      gloss: 'calling for a home it cannot find: unjoined wifi device' },
-  shade:    { n: 0, label: 'Shade',       gloss: 'gives nothing away' },
-};
-const ZONE = [['touch', 6], ['near', 20], ['far', 60]];
-const ZCOL = ['#ff4a36', '#e02232', '#b82835', '#84696b'];
-const MAXFT = 220, TAU = Math.PI * 2;
-const $ = id => document.getElementById(id);
-const radar = $('radar'), rc = radar.getContext('2d'), tide = $('tide'), tc = tide.getContext('2d');
-const live = new Map();
-let snap = { ents: [], waves: {}, omens: [], hum: 0, status: {}, attuning: true };
-let unveiled = false, voice = false, lastOmen = 0, picked = null, W = 0, H = 0, cx = 0, cy = 0, R = 0, audio;
+<div class="menu" id="m-view">
+  <div data-act="sort:signal">by Signal</div>
+  <div data-act="sort:dist">by Distance</div>
+  <div data-act="sort:name">by Name</div>
+  <div data-act="sort:kind">by Type</div>
+  <div data-act="sort:age">by Time Seen</div>
+  <hr>
+  <div data-act="addr">Show Addresses</div>
+  <div data-act="hidemine">Hide My Devices</div>
+</div>
+<div class="menu" id="m-special">
+  <div data-act="beep">Beep on Alerts</div>
+  <div data-act="full">Full Screen</div>
+</div>
 
+<main id="desk">
+  <section class="win active" id="w-dev">
+    <div class="title"><button class="box close" aria-label="collapse" data-shade></button><span>Nearby Devices</span><button class="box shade" aria-label="collapse" data-shade></button></div>
+    <div class="info" id="devinfo">waiting for the first report&hellip;</div>
+    <div class="cols" id="cols">
+      <div></div><div data-sort="name">Name</div><div data-sort="kind" class="c-kind">Type</div>
+      <div data-sort="signal">Signal, 90 s</div><div data-sort="signal">dBm</div><div data-sort="dist">Distance</div><div data-sort="age" class="c-age">Seen</div>
+    </div>
+    <div class="scroll" id="rows"><div class="empty">Listening. Devices appear here as their broadcasts are heard.</div></div>
+  </section>
+
+  <section class="win" id="w-range">
+    <div class="title"><button class="box close" aria-label="collapse" data-shade></button><span>Range Estimate</span><button class="box shade" aria-label="collapse" data-shade></button></div>
+    <div class="body"><canvas id="range"></canvas></div>
+    <div class="foot">Dot: estimate. Bar: likely range. Height within a row means nothing.</div>
+  </section>
+
+  <section class="win" id="w-act">
+    <div class="title"><button class="box close" aria-label="collapse" data-shade></button><span>Activity, last 2 min</span><button class="box shade" aria-label="collapse" data-shade></button></div>
+    <div class="body"><canvas id="act"></canvas></div>
+  </section>
+
+  <section class="win" id="w-chan">
+    <div class="title"><button class="box close" aria-label="collapse" data-shade></button><span>Wi-Fi Channels</span><button class="box shade" aria-label="collapse" data-shade></button></div>
+    <div class="body"><canvas id="chan"></canvas></div>
+    <div class="foot">Bar height = access points heard on the channel. Fill = strongest one.</div>
+  </section>
+
+  <section class="win" id="w-log">
+    <div class="title"><button class="box close" aria-label="collapse" data-shade></button><span>Event Log</span><button class="box shade" aria-label="collapse" data-shade></button></div>
+    <div class="scroll" id="log"><div class="empty">No events yet. New nearby devices, devices crossing 6/20/60 ft, and trackers that stay close are logged here.</div></div>
+  </section>
+</main>
+
+<section class="win float" id="w-info">
+  <div class="title"><button class="box close" aria-label="close" data-close></button><span id="info-title">Info</span><button class="box shade" aria-label="collapse" data-shade></button></div>
+  <div class="scroll pad" id="info"></div>
+</section>
+
+<section class="win float" id="w-about">
+  <div class="title"><button class="box close" aria-label="close" data-close></button><span>About veilglass</span></div>
+  <div class="pad">
+    <p>veilglass lists the Bluetooth LE and Wi-Fi devices this machine can hear. It only listens: it never connects to, probes or transmits at anything.</p>
+    <p class="dim">Type is a guess, and each device shows the evidence behind it. Distance comes from signal strength alone, so it is given as a range; walls, bodies and antenna orientation can push the truth outside it. One antenna cannot tell direction, so nothing here shows bearing.</p>
+    <p class="dim">Phones rotate their Bluetooth address about every 15 minutes, so the same phone can leave the list and come back as a new entry. Wi-Fi signal comes from NetworkManager as a percentage; dBm shown for it is converted from that.</p>
+    <div class="btns"><button class="btn default" data-close>OK</button></div>
+  </div>
+</section>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const span = s => s < 90 ? Math.round(s) + ' s' : s < 5400 ? Math.round(s / 60) + ' min' : (s / 3600).toFixed(1) + ' h';
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { void: css('--void'), pitch: css('--pitch'), seam: css('--seam'), ash: css('--ash'),
+  blood: css('--blood'), ember: css('--ember'), bone: css('--bone'), dim: css('--dim') };
+const FONT = '11px ChicagoFLF, Chicago, Geneva, sans-serif';
+const MONO = '10px ' + css('--mono');
+
+const KINDS = {
+  phone: 'Phone / tablet', audio: 'Audio', tracker: 'Tracker / Find My', wearable: 'Wearable',
+  computer: 'Computer / TV', beacon: 'Beacon', peripheral: 'Peripheral', ap: 'Access point',
+  hotspot: 'Hotspot', client: 'Wi-Fi client', prober: 'Probing device', unknown: 'Unknown',
+};
+const MEDIUM = { ble: 'Bluetooth LE', wifi: 'Wi-Fi beacon', air: 'Wi-Fi frames (airwatch)' };
+const BAND = ['under 6 ft', '6–20 ft', '20–60 ft', 'over 60 ft'];
+
+// 12x12 one-bit icons, drawn as masks so they take the text colour
+const BITS = {
+  phone: ['...######...', '...#....#...', '...#....#...', '...#....#...', '...#....#...', '...#....#...', '...#....#...', '...#....#...', '...######...', '...#.##.#...', '...######...', '............'],
+  audio: ['....####....', '..##....##..', '.#........#.', '#..........#', '#..........#', '#..........#', '###......###', '###......###', '###......###', '###......###', '.##......##.', '............'],
+  tracker: ['....####....', '..##....##..', '.#...##...#.', '.#..#..#..#.', '#...#..#...#', '#....##....#', '#..........#', '#..........#', '.#........#.', '.#........#.', '..##....##..', '....####....'],
+  wearable: ['...######...', '...######...', '..########..', '..#......#..', '..#......##.', '..#..#...##.', '..#...#..#..', '..#......#..', '..########..', '...######...', '...######...', '............'],
+  computer: ['############', '#..........#', '#.########.#', '#.#......#.#', '#.#......#.#', '#.#......#.#', '#.########.#', '#..........#', '############', '....####....', '..########..', '............'],
+  beacon: ['............', '.#........#.', '#..#....#..#', '#.#..##..#.#', '#.#.####.#.#', '#.#.####.#.#', '#.#..##..#.#', '#..#....#..#', '.#...##...#.', '.....##.....', '....####....', '...######...'],
+  peripheral: ['.....#......', '.....#......', '...######...', '..#..#...#..', '.#...#....#.', '.#...#....#.', '.##########.', '.#........#.', '.#........#.', '.#........#.', '..#......#..', '...######...'],
+  ap: ['.#........#.', '.#........#.', '.#........#.', '.#........#.', '.#........#.', '############', '#..........#', '#.#.#.#....#', '#..........#', '############', '.#........#.', '............'],
+  hotspot: ['.......#....', '.....#..#...', '######...#..', '#....#.#..#.', '#....#..#.#.', '#....#..#.#.', '#....#.#..#.', '#....#...#..', '#....#..#...', '######......', '#.##.#......', '######......'],
+  client: ['............', '..########..', '..#......#..', '..#......#..', '..#......#..', '..#......#..', '..########..', '.##########.', '#..........#', '############', '............', '............'],
+  prober: ['............', '....####....', '...#....#...', '.......#....', '......#.....', '.....#......', '.....#......', '............', '.....#......', '..#......#..', '.#..#..#..#.', '#..#....#..#'],
+  unknown: ['............', '...######...', '..#......#..', '..#......#..', '.........#..', '........#...', '.......#....', '......#.....', '......#.....', '............', '......#.....', '......#.....'],
+};
+const ICON = {};
+for (const [k, rows] of Object.entries(BITS)) {
+  const c = document.createElement('canvas'); c.width = c.height = 12;
+  const g = c.getContext('2d'); g.fillStyle = '#000';
+  rows.forEach((r, y) => [...r].forEach((p, x) => p === '#' && g.fillRect(x, y, 1, 1)));
+  ICON[k] = `url(${c.toDataURL()})`;
+}
+
+let snap = { devs: [], chans: {}, rate: [], counts: [], events: [], status: {}, warming: true, t: 0 };
+let snapAt = performance.now();
+const byId = new Map();          // id -> latest device record
+const anim = new Map();          // id -> eased drawing state
+let sel = null, sortKey = 'signal', showAddr = true, hideMine = false, beep = false, lastEvent = 0, cleared = 0, audio;
+try { Object.assign(window, JSON.parse(localStorage.getItem('veilglass-view') || '{}')); } catch (e) { /* storage off */ }
+function savePrefs() {
+  try { localStorage.setItem('veilglass-view', JSON.stringify({ sortKey, showAddr, hideMine, beep })); } catch (e) { /* storage off */ }
+}
+
+/* ---------- canvases ---------- */
+const canv = {};
 function fit() {
   const d = Math.min(devicePixelRatio || 1, 2);
-  for (const c of [radar, tide]) {
-    const b = c.getBoundingClientRect();
-    c.width = b.width * d; c.height = b.height * d;
-    c.getContext('2d').setTransform(d, 0, 0, d, 0, 0);
+  for (const id of ['range', 'act', 'chan']) {
+    const c = $(id), b = c.getBoundingClientRect();
+    c.width = Math.max(1, Math.round(b.width * d)); c.height = Math.max(1, Math.round(b.height * d));
+    const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); g.imageSmoothingEnabled = false;
+    canv[id] = { c, g, w: b.width, h: b.height };
   }
-  const b = radar.getBoundingClientRect();
-  W = b.width; H = b.height; cx = W / 2; cy = H / 2; R = Math.min(W, H) / 2 - 26;
 }
-addEventListener('resize', fit); fit();
+addEventListener('resize', fit);
+const patterns = new Map();
+function memo(key, make) { let p = patterns.get(key); if (!p) patterns.set(key, p = make()); return p; }
+function dither(g, a, b) { return memo(g.canvas.id + 'd' + a + b, () => makeDither(g, a, b)); }
+function sparse(g, a, b) { return memo(g.canvas.id + 's' + a + b, () => makeSparse(g, a, b)); }
+function makeDither(g, a, b) {     // 2x2 checker pattern, the classic 50% grey
+  const p = document.createElement('canvas'); p.width = p.height = 2;
+  const q = p.getContext('2d'); q.fillStyle = b; q.fillRect(0, 0, 2, 2); q.fillStyle = a; q.fillRect(0, 0, 1, 1); q.fillRect(1, 1, 1, 1);
+  return g.createPattern(p, 'repeat');
+}
+function makeSparse(g, a, b) {     // 4x4 tile with two lit pixels, a light 12% screen
+  const p = document.createElement('canvas'); p.width = p.height = 4;
+  const q = p.getContext('2d'); q.fillStyle = b; q.fillRect(0, 0, 4, 4); q.fillStyle = a; q.fillRect(0, 0, 1, 1); q.fillRect(2, 2, 1, 1);
+  return g.createPattern(p, 'repeat');
+}
+const px = v => Math.round(v) + .5;
+const feetText = d => { const lo = Math.round(d.lo), hi = Math.round(d.hi); return hi <= 3 ? 'under 3 ft' : lo === hi ? `${hi} ft` : `${lo}–${hi} ft`; };
 
-const radius = ft => R * Math.log(1 + Math.min(ft, MAXFT)) / Math.log(1 + MAXFT);
-const span = s => s < 90 ? s + ' s' : s < 5400 ? Math.round(s / 60) + ' min' : (s / 3600).toFixed(1) + ' h';
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
+/* ---------- data in ---------- */
 function merge(s) {
-  snap = s;
-  const seen = new Set();
-  for (const e of s.ents) {
-    seen.add(e.id);
-    let o = live.get(e.id);
-    if (!o) {
-      // Bearing is symbolic: one antenna can tell how loud, not which way.
-      o = { sf: Math.min(e.feet * 1.6, MAXFT), a: (e.seed % 3600) / 3600 * TAU,
-            drift: ((e.seed >> 5) % 100 - 50) / 90000, alpha: 0 };
-      live.set(e.id, o);
+  snap = s; snapAt = performance.now();
+  byId.clear();
+  for (const d of s.devs) {
+    byId.set(d.id, d);
+    let a = anim.get(d.id);
+    if (!a) { a = { x: d.feet, lo: d.lo, hi: d.hi, alpha: 0, pulse: 0 }; anim.set(d.id, a); }
+    a.gone = false;
+    if (d.pkts) a.pulse = Math.min(1, .35 + d.pkts / 12);
+  }
+  for (const [id, a] of anim) if (!byId.has(id)) a.gone = true;
+  status(); list(); events();
+  if (sel && $('w-info').classList.contains('show')) info(byId.get(sel));
+}
+
+function status() {
+  for (const k of ['ble', 'wifi', 'air']) {
+    const v = snap.status[k] || 'unknown', el = $('r-' + k);
+    el.className = 'radio ' + (v === 'listening' ? 'on' : v === 'not running' ? '' : 'off');
+    el.title = v;
+  }
+  const n = { ble: 0, wifi: 0, air: 0 };
+  for (const d of snap.devs) n[d.m]++;
+  const bad = Object.entries(snap.status).filter(([k, v]) => v !== 'listening' && v !== 'not running' || (k !== 'air' && v === 'not running'))
+    .map(([k, v]) => `<span style="color:var(--ember)">${k === 'ble' ? 'Bluetooth' : k === 'wifi' ? 'Wi-Fi' : 'Monitor'}: ${esc(v)}</span>`);
+  $('devinfo').innerHTML = `<span><b>${snap.devs.length}</b> devices heard</span><span><b>${n.ble}</b> Bluetooth</span>` +
+    `<span><b>${n.wifi}</b> Wi-Fi APs</span>${n.air ? `<span><b>${n.air}</b> Wi-Fi clients</span>` : ''}` +
+    (snap.warming ? '<span>warming up, events paused</span>' : '') + bad.join('');
+}
+
+const name = d => d.name || d.company || d.oui || '';
+const sorters = {
+  signal: (a, b) => b.rssi - a.rssi,
+  dist: (a, b) => a.feet - b.feet,
+  name: (a, b) => (name(a) || '￿').localeCompare(name(b) || '￿') || b.rssi - a.rssi,
+  kind: (a, b) => a.kind.localeCompare(b.kind) || b.rssi - a.rssi,
+  age: (a, b) => b.age - a.age,
+};
+const rowEls = new Map();
+function list() {
+  const box = $('rows');
+  const devs = snap.devs.filter(d => !(hideMine && d.mine)).sort(sorters[sortKey]);
+  for (const el of $('cols').children) el.classList.toggle('sorted', el.dataset.sort === sortKey);
+  if (!devs.length) {
+    rowEls.clear();
+    box.innerHTML = `<div class="empty">${snap.devs.length ? 'Every device heard is marked as yours.' : 'No devices heard yet.<br>Devices appear here as their broadcasts are heard.'}</div>`;
+    return;
+  }
+  box.querySelector('.empty')?.remove();
+  const keep = new Set(devs.map(d => d.id));
+  for (const [id, el] of rowEls) if (!keep.has(id)) { el.remove(); rowEls.delete(id); }
+  devs.forEach((d, i) => {
+    let el = rowEls.get(d.id);
+    if (!el) {
+      el = document.createElement('div'); el.className = 'row'; el.dataset.id = d.id;
+      el.innerHTML = `<div class="icell"><div class="ico"></div><span class="led"></span></div><div><div class="nm"></div><div class="sub ad"></div></div>
+        <div class="c-kind"><div class="kd"></div><div class="sub md"></div></div><div><canvas class="spark" width="144" height="40"></canvas></div>
+        <div class="num db"></div><div class="num d"></div><div class="c-age sub ag"></div>`;
+      rowEls.set(d.id, el);
     }
-    Object.assign(o, e, { gone: false });
-  }
-  for (const [id, o] of live) if (!seen.has(id)) o.gone = true;
-  census(); omens(); state();
-  if (picked && live.has(picked) && $('card').style.display === 'block') card(live.get(picked));
-}
-
-function state() {
-  const n = snap.ents.filter(e => e.m !== 'wifi').length, w = snap.ents.length - n;
-  const bad = Object.entries(snap.status).filter(([, v]) => v !== 'listening')
-    .map(([k, v]) => `<span class="bad">${k} ${esc(v)}</span>`).join(' · ');
-  $('state').innerHTML = (snap.attuning ? 'attuning · ' : '') +
-    `<b>${n}</b> presences · <b>${w}</b> pillars · hum <b>${snap.hum}</b>/s` + (bad ? ' · ' + bad : '');
-}
-
-function census() {
-  const count = {};
-  for (const e of snap.ents) count[e.kind] = (count[e.kind] || 0) + 1;
-  $('census').innerHTML = Object.entries(KIND).map(([k, v]) =>
-    `<div class="${count[k] ? '' : 'zero'}" title="${v.gloss}">${v.label}<b>${count[k] || 0}</b></div>`).join('');
-}
-
-function omens() {
-  if (!snap.omens.length) return;
-  $('omens').innerHTML = snap.omens.slice().reverse().map(o =>
-    `<div class="omen lv${o.lv}" data-ent="${o.ent || ''}"><time>${new Date(o.t * 1000).toLocaleTimeString([], { hour12: false })}</time>${esc(o.text)}</div>`).join('');
-  const fresh = snap.omens.filter(o => o.id > lastOmen);
-  if (lastOmen && voice && fresh.some(o => o.lv >= 2)) toll();
-  lastOmen = snap.omens[snap.omens.length - 1].id;
-}
-
-function toll() {
-  audio = audio || new AudioContext();
-  const t = audio.currentTime;
-  for (const [f, g] of [[98, .5], [147, .25], [233, .12]]) {
-    const o = audio.createOscillator(), a = audio.createGain();
-    o.frequency.value = f; o.connect(a); a.connect(audio.destination);
-    a.gain.setValueAtTime(g, t); a.gain.exponentialRampToValueAtTime(.001, t + 3.2);
-    o.start(t); o.stop(t + 3.3);
-  }
-}
-
-function sigil(o, x, y, s, t) {
-  const k = KIND[o.kind] || KIND.shade, col = o.fam ? '#9c8f80' : ZCOL[o.zone];
-  rc.save();
-  rc.translate(x, y);
-  rc.globalAlpha = o.alpha * (o.fam ? .55 : 1);
-  rc.strokeStyle = col; rc.fillStyle = col; rc.lineWidth = o.zone <= 1 ? 1.8 : 1.3;
-  if (o.zone <= 1 && !o.fam) { rc.shadowColor = '#ff2a1a'; rc.shadowBlur = o.zone === 0 ? 22 : 10; }
-  const beat = 1 + .1 * Math.sin(t * (o.zone === 0 ? 5 : 2) + o.seed);
-  rc.beginPath(); rc.arc(0, 0, s * 1.45 * beat, 0, TAU); rc.globalAlpha *= .45; rc.stroke(); rc.globalAlpha /= .45;
-  if (o.kind === 'flame') rc.rotate(Math.PI);  // pillars stand upright, flames point down
-  else if (o.kind !== 'pillar') rc.rotate((o.seed % 360) * Math.PI / 180 + t * ((o.seed & 1) ? .12 : -.12));
-  if (k.n === 0) {                       // shade: a broken ring
-    rc.beginPath(); rc.arc(0, 0, s, .5, TAU - .9); rc.stroke();
-  } else if (k.n === 2) {                // pillar: column with crossbars
-    rc.beginPath(); rc.moveTo(0, -s); rc.lineTo(0, s);
-    for (let i = -1; i <= 1; i++) { const w = s * (.35 + ((o.seed >> (i + 2)) & 1) * .3); rc.moveTo(-w, i * s * .55); rc.lineTo(w, i * s * .55); }
-    rc.stroke();
-  } else {
-    const v = [];
-    for (let i = 0; i < k.n; i++) { const a = i / k.n * TAU - Math.PI / 2; v.push([Math.cos(a) * s, Math.sin(a) * s]); }
-    rc.beginPath(); v.forEach((p, i) => i ? rc.lineTo(p[0], p[1]) : rc.moveTo(p[0], p[1])); rc.closePath(); rc.stroke();
-    if (k.n > 4) {                       // chords chosen by the address hash
-      const skip = 2 + (o.seed >> 12) % (k.n - 3);
-      rc.beginPath();
-      for (let i = 0; i < k.n; i++) if ((o.seed >> i) & 1 || i === 0) { rc.moveTo(v[i][0], v[i][1]); const q = v[(i + skip) % k.n]; rc.lineTo(q[0], q[1]); }
-      rc.stroke();
-    } else if (o.kind === 'tether') {    // linked diamond
-      rc.beginPath(); rc.moveTo(0, -s * 1.7); rc.lineTo(0, -s); rc.moveTo(0, s); rc.lineTo(0, s * 1.7); rc.stroke();
-    } else if (o.kind === 'engine') {
-      rc.strokeRect(-s * .32, -s * .32, s * .64, s * .64);
+    if (box.children[i] !== el) box.insertBefore(el, box.children[i] || null);
+    el.className = `row b${d.band}${d.mine ? ' mine' : ''}${d.id === sel ? ' sel' : ''}`;
+    el.querySelector('.ico').style.setProperty('--ico', ICON[d.kind] || ICON.unknown);
+    const label = d.name || d.company || d.oui || '(no name)';
+    el.querySelector('.nm').textContent = label + (d.mine ? '  (mine)' : '');
+    el.querySelector('.ad').textContent = showAddr ? d.addr : (d.name && (d.company || d.oui)) || '';
+    el.querySelector('.kd').textContent = KINDS[d.kind];
+    el.querySelector('.md').textContent = d.m === 'wifi' ? `ch ${d.chan ?? '?'} · ${d.sec || ''}` : d.m === 'ble' ? 'Bluetooth' : 'Wi-Fi client';
+    el.querySelector('.db').textContent = d.m === 'wifi' ? `${d.pct ?? '?'}%` : d.raw;
+    el.querySelector('.d').textContent = `${feetText(d)} ${d.trend === 'closer' ? '▲' : d.trend === 'farther' ? '▼' : ''}`;
+    el.querySelector('.d').title = `estimate ${Math.round(d.feet)} ft`;
+    el.querySelector('.ag').textContent = span(d.age);
+    if (d.pkts) {                 // flash for the packets heard in the last second
+      const led = el.querySelector('.led');
+      led.style.transition = 'none'; led.style.opacity = Math.min(1, .35 + d.pkts / 10);
+      void led.offsetWidth; led.style.transition = 'opacity .9s steps(4)'; led.style.opacity = 0;
     }
-  }
-  rc.beginPath(); rc.arc(0, 0, o.kind === 'tether' ? 2.6 : 1.6, 0, TAU);
-  if (o.kind === 'tether' && !o.fam) rc.fillStyle = '#e9dcc8';
-  rc.fill();
-  rc.restore();
-}
-
-function drawRadar(t, dt) {
-  rc.clearRect(0, 0, W, H);
-  const g = rc.createRadialGradient(cx, cy, 0, cx, cy, R * 1.25);
-  g.addColorStop(0, '#1a0709'); g.addColorStop(.55, '#0a0506'); g.addColorStop(1, '#060405');
-  rc.fillStyle = g; rc.fillRect(0, 0, W, H);
-
-  // the hum: ripples that quicken with advert traffic
-  const rate = .05 + Math.min(snap.hum, 60) / 150;
-  for (let i = 0; i < 4; i++) {
-    const p = (t * rate + i / 4) % 1;
-    rc.beginPath(); rc.arc(cx, cy, p * R, 0, TAU);
-    rc.strokeStyle = `rgba(179,18,31,${.2 * (1 - p)})`; rc.lineWidth = 1; rc.stroke();
-  }
-  // rings
-  rc.font = '10px ' + getComputedStyle(document.body).fontFamily; rc.textAlign = 'center';
-  ZONE.forEach(([name, ft], i) => {
-    const r = radius(ft);
-    rc.beginPath(); rc.setLineDash(i ? [2, 7] : []); rc.arc(cx, cy, r, 0, TAU);
-    rc.strokeStyle = ['#7a1820', '#4c151a', '#341215'][i]; rc.lineWidth = 1; rc.stroke(); rc.setLineDash([]);
-    rc.fillStyle = '#6c5557'; rc.fillText(`${name.toUpperCase()} · ${ft} FT`, cx, cy - r - 5);
+    spark(el.querySelector('.spark'), d.hist, d.id === sel ? C.void : d.mine ? C.ash : C.bone);
   });
-  rc.fillStyle = '#3d3032'; rc.fillText('THE VEIL', cx, cy - R - 8);
-  // outer ritual band
-  rc.save(); rc.translate(cx, cy); rc.rotate(t * .01);
-  for (let i = 0; i < 72; i++) {
-    rc.rotate(TAU / 72); rc.beginPath(); rc.moveTo(R + 4, 0); rc.lineTo(R + (i % 6 ? 9 : 16), 0);
-    rc.strokeStyle = i % 6 ? '#2e1619' : '#7a1820'; rc.stroke();
-  }
-  rc.restore();
-  rc.beginPath(); rc.arc(cx, cy, R + 2, 0, TAU); rc.strokeStyle = '#3a1216'; rc.stroke();
-  // you
-  rc.save(); rc.translate(cx, cy); rc.strokeStyle = '#e9dcc8'; rc.lineWidth = 1.3; rc.shadowColor = '#ff2a1a'; rc.shadowBlur = 14;
-  rc.beginPath(); rc.arc(0, 0, 7, 0, TAU);
-  for (let i = 0; i < 4; i++) { const a = i * TAU / 4 + Math.PI / 4; rc.moveTo(Math.cos(a) * 7, Math.sin(a) * 7); rc.lineTo(Math.cos(a) * 15, Math.sin(a) * 15); }
-  rc.moveTo(0, 7); rc.lineTo(0, 24); rc.stroke(); rc.restore();
+}
 
-  const order = [...live.values()].sort((a, b) => b.zone - a.zone);
-  for (const o of order) {
-    o.sf += (o.feet - o.sf) * Math.min(1, dt * 1.5);
-    o.alpha += ((o.gone ? 0 : 1) - o.alpha) * Math.min(1, dt * 4);
-    if (o.gone && o.alpha < .02) { live.delete(o.id); continue; }
-    o.a += o.drift;
-    const r = radius(o.sf);
-    o.x = cx + Math.cos(o.a) * r; o.y = cy + Math.sin(o.a) * r;
-    const s = o.m === 'wifi' ? 7 : [17, 13, 10, 8][o.zone];
-    if (o.id === picked) { rc.beginPath(); rc.moveTo(cx, cy); rc.lineTo(o.x, o.y); rc.strokeStyle = '#e9dcc855'; rc.setLineDash([3, 5]); rc.stroke(); rc.setLineDash([]); }
-    sigil(o, o.x, o.y, s, t);
-    if (o.zone <= 1 || unveiled || o.id === picked) {
-      rc.globalAlpha = o.alpha * (o.zone <= 1 ? 1 : .6);
-      rc.fillStyle = o.fam ? '#9c8f80' : o.zone === 0 ? '#ff4a36' : '#e9dcc8';
-      const real = o.label || o.vendor || (o.m === 'wifi' ? 'hidden' : o.addr.slice(-8));
-      rc.fillText(unveiled ? real : o.name.toUpperCase(), o.x, o.y + s * 1.5 + 13);
-      rc.fillStyle = '#8d7b78';
-      rc.fillText(`~${Math.round(o.sf)} ft` + (o.trend === 'approach' ? ' ▲' : o.trend === 'recede' ? ' ▽' : ''), o.x, o.y + s * 1.5 + 25);
-      rc.globalAlpha = 1;
+function spark(c, hist, col) {
+  const g = c.getContext('2d'), w = c.width, h = c.height, n = 90;
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = col;
+  const lo = -100, hi = -30, start = n - hist.length;
+  hist.forEach((v, i) => {
+    if (v == null) return;
+    const x = Math.floor((start + i) / n * w), y = Math.round((1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * (h - 2));
+    g.fillRect(x, y, Math.max(1, Math.ceil(w / n)), h - y);
+  });
+}
+
+function events() {
+  const evs = snap.events.filter(e => e.id > cleared);
+  const fresh = evs.filter(e => e.id > lastEvent);
+  if (lastEvent && beep && fresh.some(e => e.lv >= 2)) chirp();
+  if (snap.events.length) lastEvent = snap.events[snap.events.length - 1].id;
+  if (!fresh.length && $('log').dataset.n == evs.length) return;
+  $('log').dataset.n = evs.length;
+  if (!evs.length) { $('log').innerHTML = '<div class="empty">No events yet.</div>'; return; }
+  $('log').innerHTML = evs.slice().reverse().map(e =>
+    `<div class="ev lv${e.lv}" data-dev="${e.dev || ''}"><time>${new Date(e.t * 1000).toLocaleTimeString([], { hour12: false })}</time>` +
+    `<span class="lv">${['i', '!', '✕'][e.lv]}</span><span>${esc(e.text)}</span></div>`).join('');
+}
+
+function chirp() {          // two square-wave blips, roughly the old Simple Beep
+  try {
+    audio = audio || new AudioContext();
+    const t = audio.currentTime;
+    [[880, 0], [660, .11]].forEach(([f, at]) => {
+      const o = audio.createOscillator(), a = audio.createGain();
+      o.type = 'square'; o.frequency.value = f; o.connect(a); a.connect(audio.destination);
+      a.gain.setValueAtTime(.08, t + at); a.gain.setValueAtTime(0, t + at + .09);
+      o.start(t + at); o.stop(t + at + .1);
+    });
+  } catch (e) { /* no audio */ }
+}
+
+/* ---------- Get Info ---------- */
+function info(d) {
+  const box = $('info');
+  if (!d) { box.querySelector('.gone') || box.insertAdjacentHTML('afterbegin', '<p class="note gone">No longer heard. Showing the last report.</p>'); return; }
+  const label = d.name || d.company || d.oui || '(no name)';
+  $('info-title').textContent = label + ' Info';
+  const sig = d.m === 'wifi'
+    ? `${d.pct}% (NetworkManager) ≈ ${d.raw} dBm`
+    : `${d.raw} dBm now, ${d.rssi} dBm smoothed`;
+  const rows = [
+    ['Heard via', MEDIUM[d.m]],
+    ['Address', d.addr],
+    d.atype && ['Address type', d.atype],
+    d.m !== 'ble' && ['Maker (OUI)', d.oui === null ? 'none: locally administered (randomized) address' : d.oui || 'not in OUI list'],
+    d.m === 'ble' && ['Maker data', d.company || 'none'],
+    d.m === 'ble' && d.oui && ['Maker (OUI)', d.oui],
+    ['Name', d.name || '(none broadcast)'],
+    d.tx != null && ['Tx power', `${d.tx} dBm (advertised)`],
+    ['Signal', sig],
+    ['Distance', `about ${Math.round(d.feet)} ft, likely ${feetText(d)} (${BAND[d.band]})`],
+    ['Trend', { closer: 'getting stronger (closer?)', farther: 'getting weaker (farther?)', steady: 'steady' }[d.trend]],
+    ['First heard', span(d.age) + ' ago'],
+    ['Last heard', d.ago < 1.5 ? 'just now' : span(d.ago) + ' ago'],
+    ['Packets', `${d.hits} total, ${d.pkts} in the last second`],
+    d.chan && ['Channel', d.chan],
+    d.sec && ['Security', d.sec],
+    d.rate && ['Rate', d.rate],
+    d.bssid && ['Talks to', d.bssid],
+  ].filter(Boolean);
+  const fresh = box.dataset.id !== d.id;
+  box.dataset.id = d.id;
+  box.innerHTML = `<div class="head"><div class="ico" style="--ico:${ICON[d.kind]}"></div><div><h3>${esc(label)}</h3>
+      <div class="sub">${esc(KINDS[d.kind])}</div></div></div>
+    <div class="note" style="margin-top:9px">Why this type:</div>
+    <ul class="why">${(d.why || []).map(w => `<li>${esc(w)}</li>`).join('')}</ul>
+    <dl class="kv">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+    <div class="note">Signal, last 90 s (dBm; gaps = not heard${d.m === 'wifi' ? ', Wi-Fi is polled every 5 s' : ''})</div>
+    <div class="chart"><canvas id="hist"></canvas></div>
+    <div class="btns"><label class="chk"><input type="checkbox" id="mine" ${d.mine ? 'checked' : ''}> This is mine (dim it, no alerts)</label>
+    <button class="btn default" data-close>Close</button></div>`;
+  $('mine').onchange = e => fetch('/api/mine', { method: 'POST', body: JSON.stringify({ id: d.id, on: e.target.checked }) });
+  histChart($('hist'), d.hist);
+  if (fresh) box.scrollTop = 0;
+}
+
+function histChart(c, hist) {
+  const b = c.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+  c.width = b.width * dpr; c.height = b.height * dpr;
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = b.width, h = b.height, lo = -100, hi = -30, L = 30;
+  const y = v => 4 + (1 - (v - lo) / (hi - lo)) * (h - 10);
+  g.font = MONO; g.textAlign = 'right'; g.textBaseline = 'middle';
+  for (const v of [-40, -60, -80, -100]) {
+    g.fillStyle = C.ash; g.fillText(v, L - 4, y(v));
+    g.fillStyle = C.seam; for (let x = L; x < w; x += 3) g.fillRect(x, Math.round(y(v)), 1, 1);
+  }
+  const step = (w - L - 2) / 90, start = 90 - hist.length;
+  g.strokeStyle = C.bone; g.lineWidth = 1; g.beginPath();
+  let pen = false;
+  hist.forEach((v, i) => {
+    if (v == null) { pen = false; return; }
+    const X = L + (start + i + .5) * step, Y = y(Math.max(lo, Math.min(hi, v)));
+    pen ? g.lineTo(X, Y) : g.moveTo(X, Y); pen = true;
+    g.fillStyle = C.ember; g.fillRect(Math.round(X) - 1, Math.round(Y) - 1, 2, 2);
+  });
+  g.stroke();
+}
+
+/* ---------- animated views ---------- */
+const ORDER = ['tracker', 'phone', 'audio', 'wearable', 'computer', 'peripheral', 'beacon', 'unknown', 'client', 'prober', 'hotspot', 'ap'];
+const MAXFT = 400, logx = ft => Math.log(Math.max(1, Math.min(MAXFT, ft))) / Math.log(MAXFT);
+const hash = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) | 0; return (h >>> 0) / 4294967296; };
+let rangeHit = [];
+
+function drawRange(dt) {
+  const { g, w, h } = canv.range; if (!g) return;
+  g.fillStyle = C.void; g.fillRect(0, 0, w, h);
+  const kinds = ORDER.filter(k => snap.devs.some(d => d.kind === k && !(hideMine && d.mine)));
+  g.font = FONT;
+  const L = Math.ceil(Math.max(60, ...kinds.map(k => g.measureText(KINDS[k]).width)) + 16), R = w - 24, T = 6, B = h - 18;
+  const X = ft => L + logx(ft) * (R - L);
+  g.font = FONT; g.textBaseline = 'middle';
+  // distance bands
+  g.fillStyle = sparse(g, C.blood, C.void); g.fillRect(X(1), T, X(6) - X(1), B - T);
+  g.fillStyle = sparse(g, C.seam, C.void); g.fillRect(X(6), T, X(20) - X(6), B - T);
+  g.textAlign = 'center';
+  for (const ft of [1, 3, 6, 10, 20, 60, 100, 200, 400]) {
+    const x = px(X(ft)), major = ft === 6 || ft === 20 || ft === 60;
+    g.fillStyle = major ? C.ash : C.seam;
+    for (let y = T; y < B; y += major ? 2 : 4) g.fillRect(x - .5, y, 1, 1);
+    g.fillStyle = major ? C.bone : C.ash; g.fillText(ft + (ft === 400 ? '+ ft' : ''), x, B + 9);
+  }
+  if (!kinds.length) {
+    g.fillStyle = C.dim; g.fillText('No devices heard yet.', (L + R) / 2, (T + B) / 2);
+    rangeHit = []; return;
+  }
+  const rh = (B - T) / kinds.length;
+  g.textAlign = 'right';
+  kinds.forEach((k, i) => {
+    const y0 = T + i * rh;
+    if (i) { g.fillStyle = C.seam; g.fillRect(4, Math.round(y0), R - 4, 1); }
+    g.fillStyle = C.dim; g.fillText(KINDS[k], L - 8, y0 + rh / 2);
+  });
+  rangeHit = [];
+  const k1 = Math.min(1, dt * 3);
+  for (const [id, a] of anim) {
+    const d = byId.get(id) || a.last; if (!d) continue;
+    a.last = d;
+    a.alpha += ((a.gone ? 0 : 1) - a.alpha) * Math.min(1, dt * 3);
+    if (a.gone && a.alpha < .03) { anim.delete(id); continue; }
+    a.x += (d.feet - a.x) * k1; a.lo += (d.lo - a.lo) * k1; a.hi += (d.hi - a.hi) * k1;
+    a.pulse = Math.max(0, a.pulse - dt * 1.4);
+    const row = kinds.indexOf(d.kind); if (row < 0 || (hideMine && d.mine)) continue;
+    const y = Math.round(T + row * rh + rh * (.18 + .64 * hash(id))), x = Math.round(X(a.x));
+    const col = d.mine ? C.ash : d.band === 0 ? C.ember : d.band === 1 ? C.blood : C.bone;
+    g.globalAlpha = a.alpha;
+    g.fillStyle = id === sel ? C.bone : C.ash;
+    g.fillRect(Math.round(X(a.lo)), y, Math.max(1, Math.round(X(a.hi) - X(a.lo))), 1);
+    if (id === sel) { g.fillRect(Math.round(X(a.lo)), y - 3, 1, 7); g.fillRect(Math.round(X(a.hi)), y - 3, 1, 7); }
+    if (a.pulse > 0) {             // a packet arrived this second
+      const r = 4 + (1 - a.pulse) * 7;
+      g.globalAlpha = a.alpha * a.pulse; g.strokeStyle = col; g.strokeRect(x - r + .5, y - r + .5, r * 2, r * 2);
+      g.globalAlpha = a.alpha;
     }
+    g.fillStyle = col; g.strokeStyle = col;
+    if (d.m === 'ble') g.fillRect(x - 3, y - 3, 6, 6);
+    else if (d.m === 'wifi') g.strokeRect(x - 2.5, y - 2.5, 6, 6);
+    else { g.beginPath(); g.moveTo(x, y - 4); g.lineTo(x + 4, y); g.lineTo(x, y + 4); g.lineTo(x - 4, y); g.closePath(); g.fill(); }
+    if (id === sel) { g.strokeStyle = C.bone; g.strokeRect(x - 5.5, y - 5.5, 12, 12); }
+    g.globalAlpha = 1;
+    rangeHit.push([x, y, id]);
   }
 }
 
-function drawTide(t) {
-  const b = tide.getBoundingClientRect(), w = b.width, h = b.height, base = h - 16;
-  tc.clearRect(0, 0, w, h);
-  const chans = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165];
-  const xOf = i => 20 + (w - 40) * (i + (i > 12 ? 1.5 : 0)) / (chans.length + 1.5);
-  const amp = x => {
-    let y = 0;
-    chans.forEach((c, i) => { const s = snap.waves[c]; if (s) { const d = (x - xOf(i)) / ((w / chans.length) * (i > 12 ? .8 : 2.2)); y += s * Math.exp(-d * d); } });
-    return y;
-  };
-  for (let layer = 2; layer >= 0; layer--) {
-    tc.beginPath(); tc.moveTo(0, base);
-    for (let x = 0; x <= w; x += 4) {
-      const a = amp(x), wob = Math.sin(x * .05 + t * (1.2 + layer * .5) + layer) * (2 + a * 5);
-      tc.lineTo(x, base - Math.min(a, 1.4) * (h - 34) * (.55 + layer * .2) - wob - 2);
+let actMax = 10, cntMax = 10;
+function drawAct() {
+  const { g, w, h } = canv.act; if (!g) return;
+  g.fillStyle = C.void; g.fillRect(0, 0, w, h);
+  const L = 8, R = w - 34, T = 22, B = h - 16, N = 120, bw = (R - L) / N;
+  const rate = snap.rate, counts = snap.counts.map(c => c.ble + c.air), wifi = snap.counts.map(c => c.wifi);
+  actMax += (Math.max(10, ...rate) * 1.15 - actMax) * .08;
+  cntMax += (Math.max(10, ...counts, ...wifi) * 1.15 - cntMax) * .08;
+  // smooth scroll: shift left by the fraction of a second since the last report
+  const shift = Math.min(1, (performance.now() - snapAt) / 1000) * bw;
+  g.save(); g.beginPath(); g.rect(L, 0, R - L, h); g.clip();
+  const pat = dither(g, C.blood, C.void);
+  rate.forEach((v, i) => {
+    const x = L + (N - rate.length + i) * bw - shift, bh = v / actMax * (B - T);
+    g.fillStyle = pat; g.fillRect(x, B - bh, Math.max(1, bw - 1), bh);
+    g.fillStyle = C.ember; g.fillRect(x, Math.round(B - bh), Math.max(1, bw - 1), 1);
+  });
+  for (const [series, col] of [[wifi, C.dim], [counts, C.bone]]) {
+    g.strokeStyle = col; g.lineWidth = 1; g.beginPath();
+    series.forEach((v, i) => {
+      const x = L + (N - series.length + i + .5) * bw - shift, y = px(B - v / cntMax * (B - T));
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    });
+    g.stroke();
+  }
+  g.restore();
+  g.fillStyle = C.seam; g.fillRect(L, B, R - L, 1);
+  g.font = FONT; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+  const last = a => a.length ? a[a.length - 1] : 0;
+  const parts = [[C.ember, `adverts/s ${last(rate)}`], [C.bone, `devices ${last(counts)}`], [C.dim, `Wi-Fi APs ${last(wifi)}`]];
+  let x = L;
+  for (const [col, t] of parts) { g.fillStyle = col; g.fillRect(x, 9, 7, 7); g.fillText(t, x + 11, 16); x += g.measureText(t).width + 26; }
+  g.textAlign = 'right'; g.fillStyle = C.ash; g.font = MONO;
+  g.fillText('-2 min', L + 34, h - 4); g.fillText('now', R, h - 4);
+  g.textAlign = 'left';
+  g.fillText(Math.round(actMax), R + 4, T + 4); g.fillText('0', R + 4, B);
+  if (!rate.length) { g.textAlign = 'center'; g.fillStyle = C.dim; g.font = FONT; g.fillText('No reports yet.', (L + R) / 2, (T + B) / 2); }
+}
+
+const CH24 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+const CH5 = [36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165];
+const chanEase = {};
+function drawChan(dt) {
+  const { g, w, h } = canv.chan; if (!g) return;
+  g.fillStyle = C.void; g.fillRect(0, 0, w, h);
+  const extra = Object.keys(snap.chans).map(Number).filter(c => !CH24.includes(c) && !CH5.includes(c));
+  const five = [...CH5, ...extra].sort((a, b) => a - b);
+  const all = [...CH24, null, ...five];
+  const L = 8, R = w - 8, T = 22, B = h - 18, slot = (R - L) / all.length;
+  const maxAps = Math.max(3, ...Object.values(snap.chans).map(c => c.aps));
+  g.font = FONT; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.fillStyle = C.dim; g.fillText('2.4 GHz', L, 14); g.fillText('5 GHz', L + (CH24.length + 1) * slot, 14);
+  g.font = MONO; g.textAlign = 'center';
+  all.forEach((ch, i) => {
+    if (ch === null) return;
+    const info = snap.chans[ch], target = info ? info.aps : 0;
+    const e = chanEase[ch] = chanEase[ch] ?? 0;
+    chanEase[ch] = e + (target - e) * Math.min(1, dt * 4);
+    const x = Math.round(L + i * slot + 1), bw = Math.max(2, Math.floor(slot - 2));
+    const bh = Math.round(chanEase[ch] / maxAps * (B - T));
+    if (bh > 0) {
+      const s = info && info.best != null ? (info.best + 100) / 60 : 0;   // 0..1 strength
+      g.fillStyle = s > .66 ? C.bone : s > .33 ? dither(g, C.bone, C.void) : dither(g, C.ash, C.void);
+      g.fillRect(x, B - bh, bw, bh);
+      g.strokeStyle = C.bone; g.strokeRect(x + .5, B - bh + .5, bw - 1, bh - 1);
+      if (info) { g.fillStyle = C.bone; g.fillText(info.aps, x + bw / 2, B - bh - 4); }
     }
-    tc.lineTo(w, base); tc.closePath();
-    tc.fillStyle = ['#b3121f55', '#7a182044', '#3a121633'][layer]; tc.fill();
-    tc.strokeStyle = ['#ff4a36', '#b3121f', '#5a161c'][layer]; tc.lineWidth = 1; tc.stroke();
+    const label = ch <= 13 || info || ch === 36 || ch === 100 || ch === 149 || ch === 165;
+    if (label && slot > 5) { g.fillStyle = info ? C.bone : C.ash; g.fillText(ch, x + bw / 2, h - 5); }
+  });
+  g.fillStyle = C.seam; g.fillRect(L, B, R - L, 1);
+  if (!Object.keys(snap.chans).length) { g.fillStyle = C.dim; g.font = FONT; g.fillText('No access points heard yet.', (L + R) / 2, (T + B) / 2); }
+}
+
+let lastT = performance.now();
+function frame(now) {
+  const dt = Math.min(.25, (now - lastT) / 1000); lastT = now;
+  if (!document.hidden) { drawRange(dt); drawAct(); drawChan(dt); }
+  setTimeout(() => requestAnimationFrame(frame), 1000 / 30 - 6);
+}
+
+/* ---------- interaction ---------- */
+function select(id) {
+  sel = id;
+  for (const el of rowEls.values()) el.classList.toggle('sel', el.dataset.id === id);
+  const d = byId.get(id);
+  if (!d) return;
+  $('w-info').classList.add('show'); activate($('w-info')); info(d);   // shown first so the chart has a size
+}
+function activate(win) {
+  for (const w of document.querySelectorAll('.win')) w.classList.toggle('active', w === win);
+}
+document.addEventListener('pointerdown', ev => {
+  const win = ev.target.closest('.win'); if (win) activate(win);
+  if (!ev.target.closest('.menu, .mtitle')) closeMenus();
+});
+$('rows').addEventListener('click', ev => { const r = ev.target.closest('.row'); if (r) select(r.dataset.id); });
+$('log').addEventListener('click', ev => {
+  const e = ev.target.closest('.ev'); if (e && byId.has(e.dataset.dev)) select(e.dataset.dev);
+});
+$('range').addEventListener('pointerdown', ev => {
+  const b = ev.target.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top;
+  let best = null, bd = 22;
+  for (const [hx, hy, id] of rangeHit) { const dd = Math.hypot(hx - x, hy - y); if (dd < bd) { bd = dd; best = id; } }
+  if (best) select(best);
+});
+$('cols').addEventListener('click', ev => { const k = ev.target.dataset.sort; if (k) { sortKey = k; savePrefs(); list(); menuChecks(); } });
+document.addEventListener('click', ev => {
+  if (ev.target.closest('[data-close]')) {
+    const w = ev.target.closest('.win'); w.classList.remove('show');
+    if (w.id === 'w-info') { sel = null; list(); }
   }
-  tc.font = '9px monospace'; tc.textAlign = 'center';
-  chans.forEach((c, i) => { tc.fillStyle = snap.waves[c] ? '#e9dcc8' : '#4a3d3f'; if (i < 13 || i % 2 === 1 || snap.waves[c]) tc.fillText(c, xOf(i), h - 4); });
-}
-
-let lastT = 0;
-function loop(ms) {
-  const t = ms / 1000;
-  drawRadar(t, Math.min(.5, t - lastT)); lastT = t; drawTide(t);
-  setTimeout(() => requestAnimationFrame(loop), 1000 / 30 - 8);
-}
-requestAnimationFrame(loop);
-
-function hit(ev) {
-  const b = radar.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top;
-  let best = null, bd = 30;
-  for (const o of live.values()) { const d = Math.hypot(o.x - x, o.y - y); if (d < bd && !o.gone) { bd = d; best = o; } }
-  return best;
-}
-
-function card(o, ev) {
-  const k = KIND[o.kind] || KIND.shade, c = $('card');
-  c.innerHTML = `<div class="kind">${k.label}${o.fam ? ' · familiar' : ''}</div><h3>${o.name}</h3>
-    <div class="gloss">${k.gloss}</div>
-    <dl><dt>distance</dt><dd>~${Math.round(o.feet)} ft · ${['touch', 'near', 'far', 'beyond the veil'][o.zone]}</dd>
-    <dt>motion</dt><dd>${{ approach: 'drawing closer', recede: 'pulling away', still: 'holding' }[o.trend]}</dd>
-    <dt>lingered</dt><dd>${span(o.age)}</dd></dl>
-    <dl class="true"><dt>medium</dt><dd>${{ ble: 'bluetooth le', wifi: 'wifi beacon', air: 'wifi client' }[o.m] + (o.chan ? ' · ch ' + o.chan : '')}</dd>${o.bound ? `
-    <dt>bound to</dt><dd>${esc(o.bound)}</dd>` : ''}
-    <dt>calls itself</dt><dd>${esc(o.label || '(nothing)')}</dd>
-    <dt>maker</dt><dd>${esc(o.vendor || 'unknown')}</dd>
-    <dt>address</dt><dd>${o.addr}</dd><dt>signal</dt><dd>${o.rssi} dBm</dd></dl>
-    <p class="note">Distance is a guess from signal strength; walls and bodies bend it. Bearing on the glass is symbolic.</p>
-    <div class="row"><button id="bind" class="${o.fam ? 'on' : ''}">${o.fam ? 'release familiar' : 'bind as familiar'}</button><button id="shut">close</button></div>`;
-  c.style.display = 'block';
-  if (ev) {
-    c.style.left = Math.max(8, Math.min(innerWidth - 310, ev.clientX + 18)) + 'px';
-    c.style.top = Math.max(8, Math.min(innerHeight - c.offsetHeight - 8, ev.clientY - 40)) + 'px';
+  if (ev.target.closest('[data-shade]')) {
+    const w = ev.target.closest('.win'); w.classList.toggle('shaded'); setTimeout(fit, 0);
   }
-  $('shut').onclick = () => { c.style.display = 'none'; picked = null; };
-  $('bind').onclick = () => fetch('/api/familiar', { method: 'POST', body: JSON.stringify({ id: o.id, on: !o.fam }) });
+});
+// double-click a title bar to roll the window up, the Mac OS 8 "windowshade"
+document.addEventListener('dblclick', ev => {
+  const t = ev.target.closest('.title'); if (t && !ev.target.closest('button')) { t.parentElement.classList.toggle('shaded'); setTimeout(fit, 0); }
+});
+// floating windows drag by their title bars
+for (const w of document.querySelectorAll('.float')) {
+  const t = w.querySelector('.title');
+  t.addEventListener('pointerdown', ev => {
+    if (ev.target.closest('button')) return;
+    const r = w.getBoundingClientRect(), ox = ev.clientX - r.left, oy = ev.clientY - r.top;
+    t.setPointerCapture(ev.pointerId);
+    const move = e => { w.style.left = Math.max(0, Math.min(innerWidth - 60, e.clientX - ox)) + 'px'; w.style.top = Math.max(24, Math.min(innerHeight - 30, e.clientY - oy)) + 'px'; };
+    t.addEventListener('pointermove', move);
+    t.addEventListener('pointerup', () => t.removeEventListener('pointermove', move), { once: true });
+  });
 }
 
-radar.addEventListener('pointerdown', ev => {
-  const o = hit(ev);
-  if (o) { picked = o.id; card(o, ev); } else { $('card').style.display = 'none'; picked = null; }
-});
-radar.addEventListener('pointermove', ev => {
-  const o = ev.pointerType === 'mouse' && hit(ev), tip = $('tip');
-  if (!o) { tip.style.display = 'none'; return; }
-  tip.textContent = `${(KIND[o.kind] || KIND.shade).label} ${o.name} · ~${Math.round(o.feet)} ft`;
-  tip.style.display = 'block'; tip.style.left = ev.clientX + 14 + 'px'; tip.style.top = ev.clientY + 14 + 'px';
-});
-$('omens').addEventListener('click', ev => {
-  const el = ev.target.closest('.omen'), o = el && live.get(el.dataset.ent);
-  if (o) { picked = o.id; card(o, { clientX: innerWidth - 660, clientY: el.getBoundingClientRect().top }); }
-});
-$('unveil').onclick = e => { unveiled = !unveiled; e.target.classList.toggle('on', unveiled); e.target.textContent = unveiled ? 'veil' : 'lift veil'; };
-$('voice').onclick = e => { voice = !voice; e.target.classList.toggle('on', voice); if (voice) toll(); };
-const tock = () => $('clock').textContent = new Date().toLocaleTimeString([], { hour12: false });
-tock(); setInterval(tock, 1000);
+/* menus */
+function closeMenus() { document.querySelectorAll('.menu.open, .mtitle.open').forEach(m => m.classList.remove('open')); }
+for (const t of document.querySelectorAll('.mtitle')) {
+  t.addEventListener('pointerdown', ev => {
+    const m = $(t.dataset.menu), was = m.classList.contains('open');
+    closeMenus();
+    if (!was) { m.classList.add('open'); t.classList.add('open'); m.style.left = t.getBoundingClientRect().left + 'px'; }
+    ev.stopPropagation();
+  });
+}
+function menuChecks() {
+  for (const el of document.querySelectorAll('.menu [data-act]')) {
+    const a = el.dataset.act;
+    el.classList.toggle('check', a === 'sort:' + sortKey || (a === 'addr' && showAddr) || (a === 'hidemine' && hideMine) || (a === 'beep' && beep));
+  }
+}
+document.querySelectorAll('.menu').forEach(m => m.addEventListener('click', ev => {
+  const a = ev.target.closest('[data-act]')?.dataset.act; if (!a) return;
+  closeMenus();
+  if (a.startsWith('sort:')) sortKey = a.slice(5);
+  else if (a === 'addr') showAddr = !showAddr;
+  else if (a === 'hidemine') hideMine = !hideMine;
+  else if (a === 'beep') { beep = !beep; if (beep) chirp(); }
+  else if (a === 'about') { $('w-about').classList.add('show'); activate($('w-about')); }
+  else if (a === 'close-info') { $('w-info').classList.remove('show'); sel = null; }
+  else if (a === 'clear-log') { cleared = lastEvent; $('log').dataset.n = -1; events(); }
+  else if (a === 'full') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  savePrefs(); menuChecks(); list();
+}));
+menuChecks();
+
+const tock = () => $('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+tock(); setInterval(tock, 5000);
 
 function listen() {
   const es = new EventSource('/events');
   es.onmessage = ev => merge(JSON.parse(ev.data));
-  es.onerror = () => { $('state').innerHTML = '<span class="bad">the glass has gone dark · retrying</span>'; };
+  es.onerror = () => { $('devinfo').innerHTML = '<span style="color:var(--ember)">Lost contact with server.py. Retrying&hellip;</span>'; };
 }
-listen();
+fit(); requestAnimationFrame(frame); listen();
+document.fonts?.ready?.then(fit);
 </script>
 </body>
 </html>

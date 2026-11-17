@@ -1,5 +1,5 @@
 // End-to-end test for the shroud, driven over the Chrome DevTools Protocol.
-// Run through tests/run.sh, which starts the glass in demo mode and a headless
+// Run through tests/run.sh, which starts the glass with its radios off and a headless
 // Chromium with veil/ loaded. With a 5th argument it also writes the README
 // screenshots into that directory.
 import { writeFileSync } from "node:fs";
@@ -81,9 +81,9 @@ if (shots) {
 
 const glass = await open(`${base}/`);
 await size(glass, 1200, 800);
-await sleep(shots ? 26000 : 4000); // past the attunement quiet so omens show
-ok("glass renders presences", (await glass.ev("document.body.innerText")).includes("presences"));
-await shot(glass, "glass.png");
+await sleep(3000);
+ok("glass renders the device list", (await glass.ev("document.body.innerText")).includes("devices heard"));
+ok("glass shows an honest empty state", (await glass.ev("document.body.innerText")).includes("No devices heard yet"));
 
 console.log(failed ? `${failed} failed` : "all passed");
 process.exit(failed ? 1 : 0);

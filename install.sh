@@ -8,7 +8,7 @@ uv pip install --quiet --python .venv/bin/python bleak aiohttp
 mkdir -p ~/.config/systemd/user
 cat > ~/.config/systemd/user/veilglass.service <<UNIT
 [Unit]
-Description=veilglass scrying slate
+Description=veilglass nearby radio device monitor
 After=bluetooth.target network.target
 
 [Service]
